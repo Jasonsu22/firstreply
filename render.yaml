@@ -8,8 +8,8 @@ services:
     region: oregon
     plan: free # free spins down when idle; switch to "starter" before judging
     buildCommand: npm ci && npm run build
-    preDeployCommand: npm run db:migrate
-    startCommand: npm run start
+    # Migrations (and a first-time demo seed) run at startup: Render's preDeployCommand needs a paid plan.
+    startCommand: npm run db:migrate && npm run db:seed -- --if-empty && npm run start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

@@ -2,7 +2,8 @@
  * Resets and seeds the demo store. Safe to re-run: it deletes the demo merchant
  * (everything cascades) and recreates it.
  *
- *   npm run db:seed
+ *   npm run db:seed              # reset the demo store
+ *   npm run db:seed -- --if-empty  # only seed a fresh database (used on Render at startup)
  *
  * The console login is owner@trailhead.test. Its password comes from DEMO_OWNER_PASSWORD;
  * if that isn't set, one is generated and saved to .env.local (never printed).
@@ -62,6 +63,10 @@ function normalizeAddress(address: string) {
 
 async function ownerPasswordHash() {
   let password = process.env.DEMO_OWNER_PASSWORD;
+  if (!password && process.env.RENDER) {
+    // On Render there's no .env.local to save a generated password to.
+    throw new Error("Set DEMO_OWNER_PASSWORD in the Render dashboard before seeding");
+  }
   if (!password) {
     password = randomBytes(12).toString("base64url");
     appendFileSync(".env.local", `\n# Merchant console login for ${OWNER_EMAIL} (created by db:seed)\nDEMO_OWNER_PASSWORD=${password}\n`);
@@ -71,6 +76,13 @@ async function ownerPasswordHash() {
 }
 
 async function main() {
+  if (process.argv.includes("--if-empty")) {
+    const [existing] = await db.select({ id: merchants.id }).from(merchants).limit(1);
+    if (existing) {
+      console.log("Database already has data — skipping seed.");
+      return;
+    }
+  }
   const passwordHash = await ownerPasswordHash();
 
   await db.transaction(async (tx) => {
