@@ -1,0 +1,48 @@
+{
+  "name": "firstreply",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "llm:check": "tsx scripts/llm-check.ts",
+    "paypal:spike": "tsx scripts/paypal-spike.ts",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.88",
+    "@ai-sdk/openai-compatible": "^3.0.78",
+    "@node-rs/argon2": "^2.2.2",
+    "@paypal/agent-toolkit": "^1.11.0",
+    "ai": "^7.0.153",
+    "dotenv": "^18.0.9",
+    "drizzle-orm": "^0.45.4",
+    "geist": "^1.8.2",
+    "next": "16.4.3",
+    "pg": "^8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tsx": "^4.23.15",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

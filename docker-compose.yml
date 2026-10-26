@@ -1,0 +1,21 @@
+# Local development database. Start with `npm run db:up`, stop with `npm run db:down`.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: firstreply-postgres
+    environment:
+      POSTGRES_USER: firstreply
+      POSTGRES_PASSWORD: firstreply
+      POSTGRES_DB: firstreply
+    ports:
+      - "5432:5432"
+    volumes:
+      - firstreply-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firstreply"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  firstreply-pgdata:

@@ -1,0 +1,42 @@
+# Render Blueprint — creates the web app and its Postgres database from this repo.
+# Render dashboard → New → Blueprint → pick this GitHub repo. Secrets marked `sync: false`
+# are asked for once in the dashboard; they are never stored in this file.
+services:
+  - type: web
+    name: firstreply
+    runtime: node
+    region: oregon
+    plan: free # free spins down when idle; switch to "starter" before judging
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run db:migrate
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: firstreply-db
+          property: connectionString
+      - key: ENCRYPTION_KEY
+        generateValue: true # random 256-bit base64 value
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: LLM_PROTOCOL
+        value: openai
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: DEMO_OWNER_PASSWORD
+        sync: false
+
+databases:
+  - name: firstreply-db
+    databaseName: firstreply
+    user: firstreply
+    region: oregon
+    plan: free # free Postgres expires after 30 days; upgrade before judging (December)
