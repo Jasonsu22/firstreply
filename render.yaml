@@ -1,4 +1,6 @@
 # Render Blueprint — creates the web app and its Postgres database from this repo.
+# Note: Blueprints require a credit card on the Render account. We deploy without one
+# (manual web service + Neon database) — see docs/deploy-render.md.
 # Render dashboard → New → Blueprint → pick this GitHub repo. Secrets marked `sync: false`
 # are asked for once in the dashboard; they are never stored in this file.
 services:
