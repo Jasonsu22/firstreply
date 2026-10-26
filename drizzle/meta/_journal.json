@@ -22,6 +22,20 @@
       "when": 1793018571401,
       "tag": "0002_order_number_seq",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793019266214,
+      "tag": "0003_day4_cases",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793019274141,
+      "tag": "0004_actions_append_only",
+      "breakpoints": true
     }
   ]
 }

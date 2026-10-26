@@ -12,10 +12,11 @@ import "@/lib/load-env";
 import { appendFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { hash } from "@node-rs/argon2";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
-import { buyers, merchants, merchantUsers, orderItems, orders, policies, products } from "@/db/schema";
+import { buyers, cases, merchants, merchantUsers, orderItems, orders, policies, products, refunds } from "@/db/schema";
 import { encryptSecret, sha256 } from "@/lib/crypto";
+import { recomputeBuyerTier } from "@/lib/policy/context";
 
 const SLUG = "trailhead";
 const OWNER_EMAIL = "owner@trailhead.test";
@@ -30,30 +31,28 @@ const PRODUCTS = [
 ] as const;
 
 // Seeded history so the trust tiers show up in the demo (see docs/DATABASE.md §7).
+// Tiers aren't written here: the trust engine computes them from this history.
 const BUYERS = [
   {
     name: "Maya Chen",
     email: "maya.chen@example.com",
     address: "12 Pine St, Portland, OR 97201, US",
-    tier: "trusted",
-    reasons: ["6 orders over 14 months", "no claims"],
     pastOrders: 6,
+    claimsOnLatestOrders: 0, // → Trusted
   },
   {
     name: "Sam Rivera",
     email: "sam.rivera@example.com",
     address: "88 Oak Ave, Austin, TX 78701, US",
-    tier: "normal",
-    reasons: ["first order"],
     pastOrders: 1,
+    claimsOnLatestOrders: 0, // → Normal
   },
   {
     name: "Jordan Blake",
     email: "jordan.blake@example.com",
     address: "5 Elm Ct, Denver, CO 80202, US",
-    tier: "watch",
-    reasons: ["2 'not received' claims in the last 90 days", "claim rate 67% (2 of 3 orders)"],
     pastOrders: 3,
+    claimsOnLatestOrders: 2, // two refunded "not received" claims in 90 days → Watch
   },
 ] as const;
 
@@ -86,6 +85,8 @@ async function main() {
   const passwordHash = await ownerPasswordHash();
 
   await db.transaction(async (tx) => {
+    // The audit log is append-only; a demo reset is the one place allowed to delete it (see drizzle/0004).
+    await tx.execute(sql`SELECT set_config('firstreply.allow_audit_delete', 'on', true)`);
     await tx.delete(merchants).where(eq(merchants.slug, SLUG));
 
     const [merchant] = await tx
@@ -122,9 +123,6 @@ async function main() {
           name: b.name,
           email: b.email,
           addressHash: sha256(normalizeAddress(b.address)),
-          trustTier: b.tier,
-          tierReasons: [...b.reasons],
-          tierComputedAt: new Date(),
         })
         .returning();
 
@@ -153,9 +151,41 @@ async function main() {
           quantity: 1,
           unitPriceCents: product.priceCents,
         });
+
+        // A "not received" claim, resolved with a full refund, on the buyer's latest orders.
+        if (i >= b.pastOrders - b.claimsOnLatestOrders) {
+          const resolvedAt = new Date(placedAt.getTime() + 9 * 864e5);
+          await tx.insert(cases).values({
+            merchantId: merchant.id,
+            orderId: order.id,
+            buyerId: buyer.id,
+            issueType: "not_received",
+            status: "resolved",
+            resolutionType: "full_refund",
+            resolutionAmountCents: product.priceCents,
+            trustTierAtOpen: "normal",
+            summary: "Seeded history: parcel reported missing, refunded in full.",
+            openedAt: resolvedAt,
+            resolvedAt,
+          });
+          await tx.insert(refunds).values({
+            orderId: order.id,
+            idempotencyKey: `seed-${order.id}`,
+            amountCents: product.priceCents,
+            status: "completed",
+            createdAt: resolvedAt,
+          });
+          await tx.update(orders).set({ status: "refunded", refundedCents: product.priceCents }).where(eq(orders.id, order.id));
+        }
       }
     }
   });
+
+  const seededBuyers = await db.select({ id: buyers.id, name: buyers.name }).from(buyers).innerJoin(merchants, eq(merchants.id, buyers.merchantId)).where(eq(merchants.slug, SLUG));
+  for (const b of seededBuyers) {
+    const { tier, reasons } = await recomputeBuyerTier(b.id);
+    console.log(`  ${b.name}: ${tier} — ${reasons.join("; ")}`);
+  }
 
   const counts = await pool.query(`
     SELECT (SELECT count(*) FROM merchants) merchants, (SELECT count(*) FROM products) products,
