@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: early build (day 2). Store, agent and merchant console are in progress.
+> Status: in progress (day 5). Store, checkout, policy engine and the resolution agent work; chat UI and merchant console next.
 
 ## Run it locally
 
@@ -27,6 +27,8 @@ Check everything is wired up: <http://localhost:3000/api/health>
 |---|---|
 | `npm run llm:check` | Tests your LLM for tool calling, streaming, JSON output and images (`-- --protocol=both` to compare formats) |
 | `npm run paypal:spike` | Exercises each PayPal sandbox call we use (run with no arguments for the list) |
+| `npm run agent:chat -- FR-20002` | Chat with the resolution agent in the terminal as the buyer of an order (add `--say "…"` to script it) |
+| `npm test` | Unit tests (policy engine, trust tiers, buyer guidance) |
 | `npm run db:generate` | Creates a migration after changing `src/db/schema.ts` |
 | `npm run db:studio` | Browse the database |
 | `npm run db:down` | Stop the local database |

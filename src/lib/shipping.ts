@@ -5,7 +5,7 @@
  * Note for the agent's tracking tool: PayPal's get-tracking returns one record per update for the
  * same tracking number (e.g. DELIVERY_SCHEDULED, then ON_HOLD). Use the one with the latest last_updated_time.
  */
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, shipments } from "@/db/schema";
 import { runToolkitTool } from "@/lib/paypal/toolkit";
@@ -26,8 +26,11 @@ export class ShippingError extends Error {}
 export async function shipOrder(orderId: string, carrier = "UPS") {
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
   if (!order?.paypalOrderId || !order.paypalCaptureId) throw new ShippingError("Only paid orders can be shipped.");
-  const [existing] = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).orderBy(desc(shipments.shippedAt));
-  if (existing && !existing.isReship) throw new ShippingError(`Already shipped (${existing.carrier} ${existing.trackingNumber}).`);
+  const [existing] = await db
+    .select()
+    .from(shipments)
+    .where(and(eq(shipments.orderId, orderId), eq(shipments.isReship, false)));
+  if (existing) throw new ShippingError(`Already shipped (${existing.carrier} ${existing.trackingNumber}).`);
 
   const trackingNumber = `1Z${Date.now().toString().slice(-12)}`;
   await runToolkitTool("create_shipment_tracking", {
@@ -46,6 +49,35 @@ export async function shipOrder(orderId: string, carrier = "UPS") {
       trackingNumber,
       paypalTrackerId: `${order.paypalCaptureId}-${trackingNumber}`,
       status: "shipped",
+    })
+    .returning();
+  return shipment;
+}
+
+/** Sends a replacement parcel: a new PayPal tracker plus a shipment row marked as a reship. */
+export async function createReship(orderId: string, carrier = "UPS") {
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+  if (!order?.paypalOrderId || !order.paypalCaptureId) throw new ShippingError("Only paid orders can be reshipped.");
+  const [original] = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).orderBy(desc(shipments.shippedAt));
+
+  const trackingNumber = `1Z${Date.now().toString().slice(-12)}`;
+  await runToolkitTool("create_shipment_tracking", {
+    order_id: order.paypalOrderId,
+    transaction_id: order.paypalCaptureId,
+    tracking_number: trackingNumber,
+    carrier,
+    status: "SHIPPED",
+  });
+  const [shipment] = await db
+    .insert(shipments)
+    .values({
+      orderId,
+      carrier,
+      trackingNumber,
+      paypalTrackerId: `${order.paypalCaptureId}-${trackingNumber}`,
+      status: "shipped",
+      isReship: true,
+      replacesShipmentId: original?.id ?? null,
     })
     .returning();
   return shipment;

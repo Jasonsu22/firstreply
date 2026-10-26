@@ -425,3 +425,49 @@ export const disputes = pgTable(
   },
   (t) => [index("disputes_merchant_status_idx").on(t.merchantId, t.status, t.sellerResponseDueAt)],
 );
+
+// ── 3.4 Conversation memory + 3.7 LLM cost tracking (day 5) ───────────────────
+
+export const messageRole = pgEnum("message_role", ["buyer", "agent", "merchant", "tool", "system"]);
+export const agentKind = pgEnum("agent_kind", ["resolution", "dispute", "intake"]);
+
+/** Every message in a case, stored as the exact AI SDK message so the conversation replays faithfully. */
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    seq: integer("seq").notNull(),
+    role: messageRole("role").notNull(),
+    messageJson: jsonb("message_json").notNull(),
+    /** Plain text for the console and search. */
+    textPreview: text("text_preview").notNull().default(""),
+    isSummarized: boolean("is_summarized").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("messages_case_seq_uq").on(t.caseId, t.seq)],
+);
+
+/** One row per model call: cost tracking and the spending cap. */
+export const llmCalls = pgTable(
+  "llm_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    merchantId: uuid("merchant_id")
+      .notNull()
+      .references(() => merchants.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    agent: agentKind("agent").notNull(),
+    protocol: text("protocol").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    steps: integer("steps"),
+    latencyMs: integer("latency_ms").notNull(),
+    error: text("error"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("llm_calls_merchant_created_idx").on(t.merchantId, t.createdAt)],
+);

@@ -10,15 +10,24 @@ import { computeTrustTier, DEFAULT_TRUST_THRESHOLDS, effectiveTier, type TrustIn
 
 /** Counts behind a buyer's trust tier (docs/DATABASE.md §4). Only this merchant's data — buyers are scoped per store. */
 export async function loadTrustInputs(buyerId: string, now = new Date()): Promise<TrustInputs> {
+  // A "claim" is a case where the buyer asked for money or a replacement (an offer was made, or the
+  // case was resolved with one, or became a dispute) — not a simple "where's my parcel?" question.
   const { rows } = await db.execute<Record<keyof TrustInputs, string>>(sql`
-    WITH b AS (SELECT ${buyerId}::uuid AS id, ${now.toISOString()}::timestamptz AS now)
+    WITH b AS (SELECT ${buyerId}::uuid AS id, ${now.toISOString()}::timestamptz AS now),
+    claims AS (
+      SELECT c.* FROM cases c, b
+      WHERE c.buyer_id = b.id
+        AND (c.resolution_type IN ('full_refund', 'partial_refund', 'reship')
+             OR c.status = 'disputed'
+             OR EXISTS (SELECT 1 FROM offers f WHERE f.case_id = c.id))
+    )
     SELECT
       (SELECT count(*) FROM orders o, b WHERE o.buyer_id = b.id AND o.status <> 'created') AS "ordersTotal",
       (SELECT count(*) FROM orders o, b WHERE o.buyer_id = b.id AND o.status <> 'created'
           AND coalesce(o.captured_at, o.created_at) > b.now - interval '12 months') AS "ordersLast12m",
-      (SELECT count(*) FROM cases c, b WHERE c.buyer_id = b.id AND c.opened_at > b.now - interval '90 days') AS "claimsLast90d",
-      (SELECT count(*) FROM cases c, b WHERE c.buyer_id = b.id AND c.opened_at > b.now - interval '12 months') AS "claimsLast12m",
-      (SELECT count(*) FROM cases c, b WHERE c.buyer_id = b.id AND c.issue_type = 'not_received'
+      (SELECT count(*) FROM claims c, b WHERE c.opened_at > b.now - interval '90 days') AS "claimsLast90d",
+      (SELECT count(*) FROM claims c, b WHERE c.opened_at > b.now - interval '12 months') AS "claimsLast12m",
+      (SELECT count(*) FROM claims c, b WHERE c.issue_type = 'not_received'
           AND c.opened_at > b.now - interval '12 months'
           AND EXISTS (SELECT 1 FROM case_facts f WHERE f.case_id = c.id AND f.fact_type = 'delivery_confirmed')) AS "notReceivedButDeliveredLast12m",
       (SELECT count(*) FROM disputes d, b WHERE d.buyer_id = b.id AND d.outcome = 'won_by_seller') AS "disputesLostByBuyer",
