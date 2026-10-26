@@ -58,9 +58,10 @@ export async function paypalRequest<T = unknown>(path: string, { method = "GET",
 
   if (body instanceof FormData) {
     payload = body; // fetch sets the multipart boundary itself
-  } else if (body !== undefined) {
+  } else {
+    // PayPal answers 415 to a POST without a JSON content type, even when there's no body (e.g. capture).
     headers["Content-Type"] = "application/json";
-    payload = JSON.stringify(body);
+    if (body !== undefined) payload = JSON.stringify(body);
   }
   if (method !== "GET") headers["PayPal-Request-Id"] = requestId ?? randomUUID();
 

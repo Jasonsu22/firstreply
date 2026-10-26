@@ -15,6 +15,13 @@
       "when": 1793015324644,
       "tag": "0001_day2_core",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793018571401,
+      "tag": "0002_order_number_seq",
+      "breakpoints": true
     }
   ]
 }

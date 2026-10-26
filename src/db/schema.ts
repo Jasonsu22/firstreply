@@ -16,6 +16,7 @@ import {
   integer,
   jsonb,
   pgEnum,
+  pgSequence,
   pgTable,
   text,
   timestamp,
@@ -143,6 +144,9 @@ export type ShippingAddress = {
   postal_code?: string;
   country_code?: string;
 };
+
+/** Human-friendly order numbers (FR-20001, FR-20002, …), shared by all stores. Seeded history uses FR-1xxxx. */
+export const orderNumberSeq = pgSequence("order_number_seq", { startWith: 20001 });
 
 export const orders = pgTable(
   "orders",

@@ -1,4 +1,5 @@
 import { count, eq } from "drizzle-orm";
+import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db";
@@ -42,6 +43,15 @@ export default function Home() {
           and builds the evidence if a dispute happens anyway.
         </p>
       </header>
+
+      <nav className="flex flex-wrap gap-3">
+        <Link href="/store" className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800">
+          Open the demo store
+        </Link>
+        <Link href="/demo" className="rounded-lg border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900">
+          Demo control panel
+        </Link>
+      </nav>
 
       <section className="rounded-xl border border-zinc-200 p-5 dark:border-zinc-800">
         <Suspense fallback={<p className="text-sm text-zinc-500">Checking the demo store…</p>}>
