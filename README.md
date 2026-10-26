@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: in progress (day 5). Store, checkout, policy engine and the resolution agent work; chat UI and merchant console next.
+> Status: in progress (day 6). Store, checkout, policy engine, the resolution agent and the buyer help chat work; merchant console next.
 
 ## Run it locally
 
@@ -20,6 +20,13 @@ npm run dev                 # http://localhost:3000
 ```
 
 Check everything is wired up: <http://localhost:3000/api/health>
+
+## Try the buyer side
+
+- **Help widget** — the "Problem with an order?" button on every store page (`/store`). It's the one line a merchant pastes:
+  `<script src="https://<firstreply-host>/widget.js" data-shop="trailhead" async></script>`
+- **Hosted help page** — `/s/trailhead`: order number + the email used at checkout.
+- **Signed links** — "Get help with this order" in *My orders*, and the sample order emails linked from `/demo`, open the chat already verified for that one order.
 
 ## Useful scripts
 

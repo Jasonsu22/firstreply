@@ -471,3 +471,33 @@ export const llmCalls = pgTable(
   },
   (t) => [index("llm_calls_merchant_created_idx").on(t.merchantId, t.createdAt)],
 );
+
+// ── Day 6: buyer help chat ────────────────────────────────────────────────────
+
+export const chatDoor = pgEnum("chat_door", ["widget", "email_link", "statement", "hosted_page", "dispute_inquiry"]);
+export const chatVerifiedBy = pgEnum("chat_verified_by", ["order_number_email", "signed_link"]);
+
+/** One per "door" visit (PLAN.md §3.0). The session token unlocks exactly one order. */
+export const chatSessions = pgTable(
+  "chat_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    merchantId: uuid("merchant_id")
+      .notNull()
+      .references(() => merchants.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    /** Set once the buyer describes a problem. */
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "set null" }),
+    door: chatDoor("door").notNull(),
+    /** sha256 of the session token — the token itself is never stored. */
+    tokenHash: text("token_hash").notNull().unique(),
+    verifiedBy: chatVerifiedBy("verified_by").notNull(),
+    ipHash: text("ip_hash"),
+    createdAt: createdAt(),
+    lastActiveAt: ts("last_active_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+  },
+  (t) => [index("chat_sessions_order_idx").on(t.orderId)],
+);

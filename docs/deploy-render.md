@@ -14,6 +14,7 @@ On every start the app runs migrations and seeds the demo store if the database 
    - Region: **AWS US West (Oregon)** — same region as the Render app, so queries are fast
 3. On the project dashboard, click **Connect**. Keep **Connection pooling** on and copy the connection string.
    It looks like `postgresql://…@ep-…-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require`.
+   Remove `&channel_binding=require` if Neon adds it. (Not the "Data API" URL — that one is `…/rest/v1`.)
    Keep it private — it contains the database password.
 
 ## 2. Encryption key (30 seconds)
@@ -38,7 +39,7 @@ openssl rand -base64 32
    | Runtime | Node |
    | Build Command | `npm ci && npm run build` |
    | Start Command | `npm run db:migrate && npm run db:seed -- --if-empty && npm run start` |
-   | Instance Type | **Free** |
+   | Instance Type | **Free** — Render may pre-select the $7 plan; pick **$0 / month** or the deploy fails without a card |
 
 4. **Environment Variables** — add each (or use *Add from .env* and paste them in one go):
 
@@ -67,6 +68,11 @@ Open `https://<your-service>.onrender.com/api/health` (the URL is at the top of 
 ```
 
 Then the home page should say *Demo store Trailhead Supply Co. is connected*.
+
+**Shortcut used for the first deploy:** a git-ignored `.env.render` built from `.env` (PayPal + LLM keys,
+`DEMO_OWNER_PASSWORD`, a fresh `ENCRYPTION_KEY`), uploaded with *Add from .env → Choose a file*; then `DATABASE_URL` added by hand.
+
+Live: <https://firstreply-0jro.onrender.com> (`/api/health`, `/store`, `/demo`).
 
 ## After that
 

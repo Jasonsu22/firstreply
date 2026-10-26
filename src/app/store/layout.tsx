@@ -1,5 +1,6 @@
 import { Mountain, ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
 import { CartCount, CartProvider } from "@/components/store/cart";
 
 /** The demo store plays "the merchant's own website" (PLAN.md §3.0). */
@@ -33,6 +34,8 @@ export default function StoreLayout({ children }: LayoutProps<"/store">) {
           Demo store for FirstReply · PayPal sandbox — no real money moves
         </footer>
       </div>
+      {/* The one line a merchant pastes to add FirstReply (PLAN.md §3.0b, level 1). */}
+      <Script src="/widget.js" data-shop="trailhead" strategy="afterInteractive" />
     </CartProvider>
   );
 }

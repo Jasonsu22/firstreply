@@ -1,4 +1,5 @@
 import { desc, eq, inArray, ne, and } from "drizzle-orm";
+import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db";
@@ -43,6 +44,9 @@ async function OrdersTable() {
                 <td className="px-4 py-3 font-medium whitespace-nowrap">
                   {order.orderNumber}
                   {!isSandbox && <span className="ml-2 text-xs font-normal text-zinc-400">seeded</span>}
+                  <Link href={`/demo/email/${order.orderNumber}`} className="block text-xs font-normal text-emerald-700 hover:underline dark:text-emerald-400">
+                    Order email →
+                  </Link>
                 </td>
                 <td className="px-4 py-3">
                   <div>{buyer?.name ?? "—"}</div>

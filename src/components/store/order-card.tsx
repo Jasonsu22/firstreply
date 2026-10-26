@@ -1,7 +1,9 @@
-import { CircleHelp, Package, Truck } from "lucide-react";
+import { Package, Truck } from "lucide-react";
 import Link from "next/link";
 import { formatCents } from "@/lib/money";
-import type { BuyerOrder } from "@/lib/store";
+import { createHelpLink } from "@/lib/help/session";
+import { DEMO_STORE_SLUG, type BuyerOrder } from "@/lib/store";
+import { HelpButton } from "./help-button";
 import { ProductArt } from "./product-art";
 
 const SHIPMENT_LABEL: Record<string, { text: string; tone: string }> = {
@@ -66,15 +68,8 @@ export function OrderCard({ order, linkToDetail = true }: { order: BuyerOrder; l
             <Package className="size-4" /> Ships within 1 business day
           </span>
         )}
-        {/* FirstReply door 1: the help chat opens here (wired up on day 6). */}
-        <button
-          type="button"
-          disabled
-          title="Coming soon"
-          className="ml-auto inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-emerald-700 px-3 py-1.5 font-medium text-emerald-800 opacity-60 dark:border-emerald-500 dark:text-emerald-300"
-        >
-          <CircleHelp className="size-4" /> Get help with this order
-        </button>
+        {/* FirstReply: the widget opens on this order with a signed link — no typing needed. */}
+        <HelpButton shop={DEMO_STORE_SLUG} link={createHelpLink(order.id)} />
       </footer>
     </article>
   );
