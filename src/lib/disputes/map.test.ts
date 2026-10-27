@@ -46,9 +46,9 @@ describe("mapDispute", () => {
 
 describe("orderKeys", () => {
   it("finds the capture id and buyer email", () => {
+    // The invoice number (our order number) is deliberately not a key: it repeats across databases.
     expect(orderKeys({ ...sandbox, disputed_transactions: [{ ...sandbox.disputed_transactions![0], invoice_number: "FR-20004" }] })).toEqual({
       captureIds: ["4MR82598PY9428623"],
-      invoiceNumbers: ["FR-20004"],
       buyerEmail: "buyer@example.com",
     });
   });

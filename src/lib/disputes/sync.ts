@@ -5,7 +5,7 @@
  *   - PayPal webhooks (/api/webhooks/paypal) for near-instant updates
  *   - "Check PayPal now" / "Add by dispute ID" in the console (the list API can lag a few minutes; get-by-ID doesn't)
  */
-import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { buyers, cases, disputes, orders, syncState } from "@/db/schema";
 import { logAction } from "@/lib/agent/audit";
@@ -27,18 +27,17 @@ export async function fetchDispute(paypalDisputeId: string): Promise<PayPalDispu
   return (await paypalRequest(`/v1/customer/disputes/${encodeURIComponent(paypalDisputeId)}`)) as PayPalDispute;
 }
 
+/**
+ * The disputed order, by PayPal capture ID only: it's unique to a real payment, and every paid order has one.
+ * (Not by order number — two databases sharing one sandbox account reuse numbers, and unpaid checkouts can't be disputed.)
+ */
 async function findOrder(merchantId: string, d: PayPalDispute) {
-  const { captureIds, invoiceNumbers } = orderKeys(d);
-  if (!captureIds.length && !invoiceNumbers.length) return undefined;
+  const { captureIds } = orderKeys(d);
+  if (!captureIds.length) return undefined;
   const [order] = await db
     .select()
     .from(orders)
-    .where(
-      and(
-        eq(orders.merchantId, merchantId),
-        or(captureIds.length ? inArray(orders.paypalCaptureId, captureIds) : undefined, invoiceNumbers.length ? inArray(orders.orderNumber, invoiceNumbers) : undefined),
-      ),
-    );
+    .where(and(eq(orders.merchantId, merchantId), inArray(orders.paypalCaptureId, captureIds)));
   return order;
 }
 
@@ -79,11 +78,11 @@ export async function upsertDispute(merchantId: string, d: PayPalDispute, source
   const mapped = mapDispute(d);
   const [existing] = await db.select().from(disputes).where(eq(disputes.paypalDisputeId, mapped.paypalDisputeId));
 
-  const order = existing?.orderId
-    ? (await db.select().from(orders).where(eq(orders.id, existing.orderId)))[0]
-    : await findOrder(merchantId, d);
-  const caseRow = existing?.caseId
-    ? (await db.select().from(cases).where(eq(cases.id, existing.caseId)))[0]
+  // Re-matched on every sync, so a wrong or missing link corrects itself.
+  const order = await findOrder(merchantId, d);
+  const keepCase = existing?.caseId && existing.orderId === order?.id;
+  const caseRow = keepCase
+    ? (await db.select().from(cases).where(eq(cases.id, existing.caseId!)))[0]
     : order
       ? await caseFor(order, mapped.reason, mapped.createdAtPaypal)
       : undefined;

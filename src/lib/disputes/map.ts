@@ -73,12 +73,11 @@ export function mapDispute(d: PayPalDispute): Omit<DisputeRow, "merchantId" | "o
   };
 }
 
-/** What identifies the disputed order: our capture IDs first, then the invoice number (= our order number). */
+/** What identifies the disputed order: the capture ID of the payment (our orders store it). */
 export function orderKeys(d: PayPalDispute) {
   const txns = d.disputed_transactions ?? [];
   return {
     captureIds: txns.map((t) => t.seller_transaction_id).filter((v): v is string => !!v),
-    invoiceNumbers: txns.map((t) => t.invoice_number).filter((v): v is string => !!v),
     buyerEmail: txns.find((t) => t.buyer?.email)?.buyer?.email ?? null,
   };
 }
