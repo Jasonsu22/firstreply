@@ -89,6 +89,14 @@ export function describeAction(row: ActionRow): TimelineEntry {
       return { title: `Approved by ${String(args.by ?? "the store team")}`, detail: row.agentReason ?? undefined, tone: "allowed", reasons: [] };
     case "reject_offer":
       return { title: `Rejected by ${String(args.by ?? "the store team")}`, detail: row.agentReason ? `Note to buyer: “${row.agentReason}”` : undefined, tone: "denied", reasons: [] };
+    case "dispute_provide_evidence":
+    case "dispute_provide_supporting_info":
+    case "dispute_make_offer":
+    case "dispute_accept_claim":
+    case "dispute_send_message": {
+      const what = row.tool.replace("dispute_", "").replace(/_/g, " ");
+      return { title: `Sent to PayPal: ${what}`, detail: row.agentReason ?? undefined, tone: row.tool === "dispute_accept_claim" ? "money" : "allowed", reasons: [], paypalRef: args.dispute_id ? `dispute ${String(args.dispute_id)}` : undefined };
+    }
     case "dispute_opened":
     case "dispute_updated": {
       const stage = disputeStageLabel(String(result.stage ?? "inquiry"));

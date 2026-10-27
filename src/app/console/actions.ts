@@ -1,12 +1,15 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { merchantUsers } from "@/db/schema";
+import { disputes, merchantUsers } from "@/db/schema";
 import { approve, ApprovalError, reject } from "@/lib/console/approvals";
 import { PolicyForm, savePolicy, type PolicyValues } from "@/lib/console/policies";
+import { draftDisputeResponse } from "@/lib/disputes/agent";
+import type { SubmitAction } from "@/lib/disputes/draft-rules";
+import { SubmitError, submitDraft } from "@/lib/disputes/submit";
 import { fetchDispute, syncDisputes, upsertDispute } from "@/lib/disputes/sync";
 import { checkPassword, demoConsoleOpen, endMerchantSession, requireMerchant, startMerchantSession } from "@/lib/merchant-session";
 import { formatCents } from "@/lib/money";
@@ -116,5 +119,31 @@ export async function addDisputeAction(disputeId: string): Promise<DecisionResul
     return { ok: true, message: `${dispute.paypalDisputeId} ${isNew ? "added" : "refreshed"} — ${match}.` };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// ── Dispute responses (day 11) ────────────────────────────────────────────────
+
+export async function draftDisputeAction(disputeId: string): Promise<DecisionResult> {
+  const session = await requireMerchant();
+  const [dispute] = await db.select({ id: disputes.id }).from(disputes).where(and(eq(disputes.id, disputeId), eq(disputes.merchantId, session.merchantId)));
+  if (!dispute) return { ok: false, error: "Dispute not found." };
+  try {
+    const draft = await draftDisputeResponse(dispute.id);
+    return { ok: true, message: `Draft v${draft.version} ready.` };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function submitDisputeAction(draftId: string, edits: { responseText: string; action: SubmitAction }): Promise<DecisionResult> {
+  const session = await requireMerchant();
+  try {
+    const r = await submitDraft(session, draftId, edits);
+    return { ok: true, message: `Sent to PayPal (${r.action.replace(/_/g, " ")}, draft v${r.version}). PayPal now shows: ${r.status.toLowerCase().replace(/_/g, " ")}.` };
+  } catch (err) {
+    if (err instanceof SubmitError) return { ok: false, error: err.message };
+    console.error("dispute submit failed", err);
+    return { ok: false, error: "Something went wrong before anything was sent. Please try again." };
   }
 }

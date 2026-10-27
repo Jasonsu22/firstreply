@@ -57,6 +57,13 @@
       "when": 1793078840016,
       "tag": "0007_day10_dispute_watcher",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793081959410,
+      "tag": "0008_day11_dispute_agent",
+      "breakpoints": true
     }
   ]
 }

@@ -537,3 +537,51 @@ export const webhookEvents = pgTable("webhook_events", {
   processedAt: ts("processed_at"),
   error: text("error"),
 });
+
+// ── Day 11: dispute agent ─────────────────────────────────────────────────────
+
+export const draftRecommendation = pgEnum("draft_recommendation", ["fight", "offer", "accept"]);
+export const draftAuthor = pgEnum("draft_author", ["agent", "merchant"]);
+export const submissionAction = pgEnum("submission_action", ["provide_evidence", "provide_supporting_info", "make_offer", "accept_claim", "send_message"]);
+
+/** Each version of the response to a dispute: drafted by the dispute agent, edited by the merchant. */
+export const disputeDrafts = pgTable(
+  "dispute_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    disputeId: uuid("dispute_id")
+      .notNull()
+      .references(() => disputes.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    recommendation: draftRecommendation("recommendation").notNull(),
+    /** The PayPal action this draft is for (one PayPal currently allows). */
+    action: submissionAction("action").notNull(),
+    /** Merchant-facing: why the agent recommends this. */
+    reasoning: text("reasoning").notNull(),
+    /** What goes to PayPal (notes / message). */
+    responseText: text("response_text").notNull(),
+    /** Evidence the response relies on, each tied to a fact from the case record. */
+    evidencePlan: jsonb("evidence_plan").$type<{ type: string; description: string; source: string }[]>().notNull().default([]),
+    offerAmountCents: cents("offer_amount_cents"),
+    createdBy: draftAuthor("created_by").notNull(),
+    model: text("model"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("dispute_drafts_version_uq").on(t.disputeId, t.version)],
+);
+
+/** What was actually sent to PayPal, and PayPal's answer. Only ever written from a merchant's click. */
+export const disputeSubmissions = pgTable("dispute_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  disputeId: uuid("dispute_id")
+    .notNull()
+    .references(() => disputes.id, { onDelete: "cascade" }),
+  draftId: uuid("draft_id").references(() => disputeDrafts.id),
+  action: submissionAction("action").notNull(),
+  request: jsonb("request").notNull(),
+  response: jsonb("response"),
+  ok: boolean("ok").notNull(),
+  paypalDebugId: text("paypal_debug_id"),
+  submittedBy: uuid("submitted_by").references(() => merchantUsers.id),
+  submittedAt: ts("submitted_at").notNull().defaultNow(),
+});

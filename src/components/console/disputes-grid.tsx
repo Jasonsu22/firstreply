@@ -199,7 +199,8 @@ export function DisputesGrid({ initialRows, initialCheck }: { initialRows: Dispu
           rowData={rows}
           columnDefs={columnDefs}
           getRowId={(p) => p.data.id}
-          onCellClicked={(e) => e.data?.caseId && e.column.getColId() !== "orderNumber" && router.push(`/console/cases/${e.data.caseId}`)}
+          rowStyle={{ cursor: "pointer" }}
+          onCellClicked={(e) => e.data && e.column.getColId() !== "orderNumber" && router.push(`/console/disputes/${e.data.id}`)}
           overlayNoRowsTemplate="No disputes. That's the goal."
         />
       </div>

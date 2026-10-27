@@ -181,7 +181,9 @@ function DisputeBanner({ dispute, caseOpenedAt }: { dispute: CaseDetail["dispute
         <span className="font-semibold">
           PayPal {disputeStageLabel(dispute.stage)} · {disputeReasonLabel(dispute.reason)} · {formatCents(dispute.amountCents, dispute.currency)}
         </span>
-        <span className="font-mono text-xs text-zinc-500">{dispute.paypalDisputeId}</span>
+        <Link href={`/console/disputes/${dispute.id}`} className="font-mono text-xs text-zinc-500 underline hover:text-zinc-900 dark:hover:text-zinc-100">
+          {dispute.paypalDisputeId} → respond
+        </Link>
         <span className="ml-auto text-xs text-zinc-600 dark:text-zinc-400">
           {done ? `Outcome: ${dispute.outcome!.replace(/_/g, " ")}` : humanStatus(dispute.status)}
           {!done && dispute.sellerResponseDueAt && ` · respond by ${dateTime.format(dispute.sellerResponseDueAt)}`}
