@@ -52,7 +52,7 @@ function textOf(message: ModelMessage): string {
 }
 
 /** Buyer and agent text only — tool calls stay hidden. Consecutive agent texts in one turn become one bubble. */
-function toBubbles(rows: { role: string; messageJson: unknown }[]): ChatBubble[] {
+export function toBubbles(rows: { role: string; messageJson: unknown }[]): ChatBubble[] {
   const bubbles: ChatBubble[] = [];
   for (const row of rows) {
     if (row.role !== "buyer" && row.role !== "agent") continue;

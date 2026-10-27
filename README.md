@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: in progress (day 6). Store, checkout, policy engine, the resolution agent and the buyer help chat work; merchant console next.
+> Status: in progress (day 7). Store, checkout, policy engine, the resolution agent, the buyer help chat and the merchant console (AG Grid cases list + case timeline) work; approvals and policies next.
 
 ## Run it locally
 
@@ -27,6 +27,13 @@ Check everything is wired up: <http://localhost:3000/api/health>
   `<script src="https://<firstreply-host>/widget.js" data-shop="trailhead" async></script>`
 - **Hosted help page** — `/s/trailhead`: order number + the email used at checkout.
 - **Signed links** — "Get help with this order" in *My orders*, and the sample order emails linked from `/demo`, open the chat already verified for that one order.
+
+## Try the merchant side
+
+- **Console** — `/console`. Sign in as `owner@trailhead.test` with the `DEMO_OWNER_PASSWORD` from `.env.local` (created by `npm run db:seed`).
+  Set `DEMO_CONSOLE_OPEN=true` to add a one-click "Open the demo store's console" button for judges (sandbox only).
+- **Cases** — AG Grid list of every buyer problem: status, trust tier, the agent's last policy decision, outcome. Filters, search, and rows update live while the agent works.
+- **Case page** — the conversation next to a plain-language timeline from the append-only audit log: each check, policy decision (with reasons), and PayPal call (with refund IDs). The raw call is one click away.
 
 ## Useful scripts
 
