@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: in progress (day 7). Store, checkout, policy engine, the resolution agent, the buyer help chat and the merchant console (AG Grid cases list + case timeline) work; approvals and policies next.
+> Status: in progress (day 8). Store, checkout, policy engine, the resolution agent, the buyer help chat and the merchant console (cases grid, case timeline, approvals, policies) work; dispute handling next.
 
 ## Run it locally
 
@@ -33,6 +33,8 @@ Check everything is wired up: <http://localhost:3000/api/health>
 - **Console** — `/console`. Sign in as `owner@trailhead.test` with the `DEMO_OWNER_PASSWORD` from `.env.local` (created by `npm run db:seed`).
   Set `DEMO_CONSOLE_OPEN=true` to add a one-click "Open the demo store's console" button for judges (sandbox only).
 - **Cases** — AG Grid list of every buyer problem: status, trust tier, the agent's last policy decision, outcome. Filters, search, and rows update live while the agent works.
+- **Approvals** — fixes the policy held back (Watch buyers, over the auto limit). Approve runs the refund or reship through PayPal right away; reject with an optional note. Either way the buyer gets a message in their chat. Also available as Approve / Reject buttons in the cases grid.
+- **Policies** — auto-refund limits (normal and Trusted buyers), replacements, the "not received" wait, trust-tier thresholds (changing them re-scores every buyer) and the reply time the agent promises. Hard limits (nothing left to refund, reship limit) still apply after an approval.
 - **Case page** — the conversation next to a plain-language timeline from the append-only audit log: each check, policy decision (with reasons), and PayPal call (with refund IDs). The raw call is one click away.
 
 ## Useful scripts

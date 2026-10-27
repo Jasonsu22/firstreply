@@ -14,11 +14,10 @@ import { db } from "@/db";
 import { approvals, offers, orderItems, orders, policies, shipments } from "@/db/schema";
 import { formatCents } from "@/lib/money";
 import { runToolkitTool } from "@/lib/paypal/toolkit";
-import { loadPolicyContext, recomputeBuyerTier } from "@/lib/policy/context";
+import { loadPolicyContext } from "@/lib/policy/context";
 import { evaluateProposal, type IssueType, type ProposalType } from "@/lib/policy/engine";
-import { issueRefund } from "@/lib/refunds";
-import { createReship } from "@/lib/shipping";
 import { addFact, audited, logAction } from "./audit";
+import { executeOffer } from "./execute";
 import { BUYER_GUIDANCE } from "./guidance";
 import { updateCase, type Case } from "./cases";
 
@@ -226,42 +225,13 @@ export function createResolutionTools(session: AgentSession) {
           return { ok: false, error: "This fix is no longer available.", guidance: recheck.reasons.map((r) => BUYER_GUIDANCE[r.code]) };
         }
 
-        await db.update(offers).set({ status: "accepted", answeredAt: new Date() }).where(eq(offers.id, offer.id));
-
-        if (offer.type === "return_then_refund") {
-          await updateCase(caseId, { status: "awaiting_buyer" });
-          await logAction({ ...meta("accept_offer", { offer_id }, buyer_words), status: "ok", result: { return_requested: true } });
+        await db.update(offers).set({ answeredAt: new Date() }).where(eq(offers.id, offer.id));
+        const done = await executeOffer({ offer, caseRow: session.caseRow, amountCents: recheck.amountCents ?? undefined, storeName: session.storeName, actor: "agent", reason: buyer_words });
+        if (done.kind === "return_requested") {
           return { ok: true, next_step: "Give return instructions: send the item back unused in its packaging; the refund follows when it arrives." };
         }
-
-        if (offer.type === "reship") {
-          const { result: shipment, actionId } = await audited(meta("create_reship", { offer_id }, buyer_words), () => createReship(orderId));
-          await db.update(offers).set({ status: "executed", executedAt: new Date(), executedActionId: actionId }).where(eq(offers.id, offer.id));
-          await updateCase(caseId, { status: "resolved", resolutionType: "reship", resolvedAt: new Date() });
-          await recomputeBuyerTier(session.caseRow.buyerId);
-          return { ok: true, replacement: { carrier: shipment.carrier, tracking_number: shipment.trackingNumber } };
-        }
-
-        const amountCents = recheck.amountCents!;
-        const { result, actionId } = await audited(meta("issue_refund", { offer_id, amount_cents: amountCents }, buyer_words), () =>
-          issueRefund({
-            orderId,
-            offerId: offer.id,
-            amountCents,
-            idempotencyKey: `offer-${offer.id}`,
-            noteToPayer: `Refund from ${session.storeName} — sorry for the trouble with your order.`,
-          }),
-        );
-        await addFact(caseId, "refund_issued", { amount_cents: amountCents, paypal_refund_id: result.refund.paypalRefundId }, actionId);
-        await db.update(offers).set({ status: "executed", executedAt: new Date(), executedActionId: actionId }).where(eq(offers.id, offer.id));
-        await updateCase(caseId, {
-          status: "resolved",
-          resolutionType: offer.type === "partial_refund" ? "partial_refund" : "full_refund",
-          resolutionAmountCents: amountCents,
-          resolvedAt: new Date(),
-        });
-        await recomputeBuyerTier(session.caseRow.buyerId);
-        return { ok: true, refunded: formatCents(amountCents), paypal_refund_id: result.refund.paypalRefundId, arrives: "usually within 3–5 business days, back to the original payment method" };
+        if (done.kind === "reship") return { ok: true, replacement: { carrier: done.carrier, tracking_number: done.trackingNumber } };
+        return { ok: true, refunded: formatCents(done.amountCents), paypal_refund_id: done.paypalRefundId, arrives: "usually within 3–5 business days, back to the original payment method" };
       },
     }),
 

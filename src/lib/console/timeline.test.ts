@@ -45,6 +45,15 @@ describe("describeAction", () => {
     expect(e).toMatchObject({ title: "issue refund failed", detail: "INSUFFICIENT_FUNDS", tone: "error", paypalRef: "debug id abc123" });
   });
 
+  it("names who approved or rejected", () => {
+    expect(describeAction(row({ tool: "approve_offer", actor: "merchant", arguments: { by: "owner@trailhead.test" } }))).toMatchObject({ title: "Approved by owner@trailhead.test", tone: "allowed" });
+    expect(describeAction(row({ tool: "reject_offer", actor: "merchant", arguments: { by: "owner@trailhead.test" }, agentReason: "It was delivered." }))).toMatchObject({
+      title: "Rejected by owner@trailhead.test",
+      detail: "Note to buyer: “It was delivered.”",
+      tone: "denied",
+    });
+  });
+
   it("falls back to the tool name for unknown tools", () => {
     expect(describeAction(row({ tool: "something_new" })).title).toBe("something new");
   });

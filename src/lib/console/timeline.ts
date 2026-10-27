@@ -83,6 +83,11 @@ export function describeAction(row: ActionRow): TimelineEntry {
       return { title: "Noted an inconsistency", detail: args.observation as string | undefined, tone: "approval", reasons };
     case "escalate_to_human":
       return { title: "Escalated to the store team", tone: "approval", reasons };
+    case "approve_offer":
+      if (row.status === "blocked_by_policy") return { title: "Approval blocked by a hard limit", tone: "denied", reasons, detail: row.agentReason ?? undefined };
+      return { title: `Approved by ${String(args.by ?? "the store team")}`, detail: row.agentReason ?? undefined, tone: "allowed", reasons: [] };
+    case "reject_offer":
+      return { title: `Rejected by ${String(args.by ?? "the store team")}`, detail: row.agentReason ? `Note to buyer: “${row.agentReason}”` : undefined, tone: "denied", reasons: [] };
     case "mark_resolved":
       return { title: "Marked resolved", tone: "allowed", reasons };
     default:

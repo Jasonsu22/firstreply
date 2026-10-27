@@ -7,9 +7,10 @@
  */
 import { AllCommunityModule, colorSchemeDark, ModuleRegistry, themeQuartz, type ColDef, type RowClassRules } from "ag-grid-community";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react";
-import { Search } from "lucide-react";
+import { LoaderCircle, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { approveAction, rejectAction, type DecisionResult } from "@/app/console/actions";
 import type { CaseRow } from "@/lib/console/cases";
 import { DecisionText, ISSUE_LABEL, RESOLUTION_LABEL, StatusBadge, TierBadge } from "./badges";
 
@@ -98,6 +99,64 @@ const OutcomeCell = ({ data }: CustomCellRendererProps<CaseRow>) => {
   );
 };
 
+type GridContext = { refresh: () => Promise<void> };
+
+/** Approve / Reject right in the row, with a second click to confirm before money moves. */
+function DecideCell({ data, context }: CustomCellRendererProps<CaseRow, unknown, GridContext>) {
+  const [confirming, setConfirming] = useState<"approve" | "reject" | null>(null);
+  const [result, setResult] = useState<DecisionResult>();
+  const [pending, startTransition] = useTransition();
+  const approval = data?.approval;
+  if (!approval) return result?.ok ? <span className="text-xs text-emerald-700 dark:text-emerald-400">Done</span> : null;
+
+  const run = (fn: () => Promise<DecisionResult>) =>
+    startTransition(async () => {
+      const r = await fn();
+      setResult(r);
+      setConfirming(null);
+      if (r.ok) await context.refresh();
+    });
+
+  const btn = "rounded-md px-2 py-0.5 text-xs font-medium disabled:opacity-50";
+  return (
+    <span className="flex h-full items-center gap-1.5" title={result && !result.ok ? result.error : approval.label}>
+      {pending ? (
+        <span className="flex items-center gap-1 text-xs text-zinc-500">
+          <LoaderCircle className="size-3.5 animate-spin" /> Working…
+        </span>
+      ) : confirming === "approve" ? (
+        <>
+          <button className={`${btn} bg-emerald-700 text-white hover:bg-emerald-800`} onClick={() => run(() => approveAction(approval.id))}>
+            {approval.offerType === "reship" ? "Confirm reship" : `Confirm ${money(approval.atStakeCents, data.currency)}`}
+          </button>
+          <button className={`${btn} text-zinc-500`} onClick={() => setConfirming(null)}>
+            Cancel
+          </button>
+        </>
+      ) : confirming === "reject" ? (
+        <>
+          <button className={`${btn} bg-red-700 text-white hover:bg-red-800`} onClick={() => run(() => rejectAction(approval.id))}>
+            Confirm reject
+          </button>
+          <button className={`${btn} text-zinc-500`} onClick={() => setConfirming(null)}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <>
+          <button className={`${btn} bg-emerald-700 text-white hover:bg-emerald-800`} onClick={() => setConfirming("approve")}>
+            Approve
+          </button>
+          <button className={`${btn} border border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800`} onClick={() => setConfirming("reject")}>
+            Reject
+          </button>
+          {result && !result.ok && <span className="truncate text-xs text-red-700 dark:text-red-400">{result.error}</span>}
+        </>
+      )}
+    </span>
+  );
+}
+
 // ── Grid ──────────────────────────────────────────────────────────────────────
 
 const FILTERS = [
@@ -135,38 +194,36 @@ export function CasesGrid({ initialRows }: { initialRows: CaseRow[] }) {
   const [offline, setOffline] = useState(false);
 
   // Live updates: re-fetch on an interval (and when the tab comes back into view).
-  useEffect(() => {
-    let stopped = false;
-    async function refresh() {
-      if (document.hidden) return;
-      try {
-        const res = await fetch("/api/console/cases", { cache: "no-store" });
-        if (res.status === 401) return router.push("/console/login");
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { rows: CaseRow[] };
-        if (!stopped) {
-          setRows(data.rows);
-          setUpdatedAt(new Date());
-          setOffline(false);
-        }
-      } catch {
-        if (!stopped) setOffline(true);
-      }
+  const refresh = useCallback(async () => {
+    if (document.hidden) return;
+    try {
+      const res = await fetch("/api/console/cases", { cache: "no-store" });
+      if (res.status === 401) return router.push("/console/login");
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { rows: CaseRow[] };
+      setRows(data.rows);
+      setUpdatedAt(new Date());
+      setOffline(false);
+    } catch {
+      setOffline(true);
     }
+  }, [router]);
+
+  useEffect(() => {
     const timer = setInterval(refresh, POLL_MS);
     document.addEventListener("visibilitychange", refresh);
     return () => {
-      stopped = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [router]);
+  }, [refresh]);
 
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.key, rows.filter((r) => matchesFilter(r, f.key)).length])) as Record<FilterKey, number>, [rows]);
 
   const columnDefs = useMemo<ColDef<CaseRow>[]>(
     () => [
       { field: "orderNumber", headerName: "Order", cellRenderer: OrderCell, pinned: "left", width: 120 },
+      { colId: "decide", headerName: "Your decision", cellRenderer: DecideCell, width: 230, sortable: false, valueGetter: (p) => p.data?.approval?.id ?? "" },
       { field: "buyerEmail", headerName: "Buyer", cellRenderer: BuyerCell, minWidth: 200, flex: 1, getQuickFilterText: (p) => `${p.data?.buyerName ?? ""} ${p.data?.buyerEmail ?? ""}` },
       { field: "buyerTier", headerName: "Trust tier", cellRenderer: TierCell, width: 125 },
       { field: "issueType", headerName: "Issue", valueFormatter: (p) => ISSUE_LABEL[p.value] ?? p.value, width: 160 },
@@ -223,7 +280,8 @@ export function CasesGrid({ initialRows }: { initialRows: CaseRow[] }) {
           getRowId={(p) => p.data.id}
           quickFilterText={search}
           rowClassRules={rowClassRules}
-          onRowClicked={(e) => open(e.data?.id)}
+          context={{ refresh } satisfies GridContext}
+          onCellClicked={(e) => e.column.getColId() !== "decide" && open(e.data?.id)}
           onCellKeyDown={(e) => (e.event as KeyboardEvent | undefined)?.key === "Enter" && open(e.data?.id)}
           rowStyle={{ cursor: "pointer" }}
           overlayNoRowsTemplate="No cases yet. When a buyer asks for help, the case shows up here."

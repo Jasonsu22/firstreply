@@ -5,6 +5,7 @@ import { actions, approvals, buyers, caseFacts, cases, messages, offers, orderIt
 import { buildCaseSummary } from "@/lib/agent/cases";
 import { toBubbles } from "@/lib/help/state";
 import { effectiveTier } from "@/lib/policy/trust";
+import { listApprovals } from "./approvals";
 import { describeAction, type TimelineEntry } from "./timeline";
 
 export type CaseRow = {
@@ -23,6 +24,8 @@ export type CaseRow = {
   /** Last policy decision the agent got for this case. */
   lastDecision: string | null;
   pendingApproval: boolean;
+  /** The approval waiting on the merchant, for the grid's Approve / Reject buttons. */
+  approval: { id: string; label: string; atStakeCents: number; offerType: string } | null;
   /** Messages the buyer sent. */
   messageCount: number;
   openedAt: string;
@@ -61,8 +64,10 @@ export async function listCases(merchantId: string): Promise<CaseRow[]> {
     .where(eq(cases.merchantId, merchantId))
     .orderBy(desc(cases.openedAt));
 
+  const pending = new Map((await listApprovals(merchantId, "pending")).map((a) => [a.caseId, a]));
   return rows.map(({ trustTier, manualTier, openedAt, resolvedAt, lastActivityAt, ...r }) => ({
     ...r,
+    approval: pending.has(r.id) ? (({ id, offerLabel, atStakeCents, offerType }) => ({ id, label: offerLabel, atStakeCents, offerType }))(pending.get(r.id)!) : null,
     buyerTier: effectiveTier({ trustTier, manualTier }),
     openedAt: openedAt.toISOString(),
     resolvedAt: resolvedAt?.toISOString() ?? null,

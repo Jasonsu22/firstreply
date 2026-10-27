@@ -207,6 +207,21 @@ function ChatView({ token, initial, onSessionEnded }: { token: string; initial: 
     bottom.current?.scrollIntoView({ block: "end" });
   }, [bubbles, streaming, status, state.offer]);
 
+  // While the store team is reviewing a fix, check back so their decision shows up without a reload.
+  const waitingOnStore = !!state.pendingApproval;
+  useEffect(() => {
+    if (!waitingOnStore || busy) return;
+    const timer = setInterval(async () => {
+      if (document.hidden) return;
+      const res = await fetch("/api/help/state", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+      if (!res?.ok) return;
+      const next = (await res.json()).state as ChatState;
+      setState(next);
+      setBubbles(next.messages);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [waitingOnStore, busy, token]);
+
   async function send(message: string) {
     const text = message.trim();
     if (!text || busy) return;
