@@ -86,7 +86,7 @@ export async function loadPolicyContext(orderId: string, issueType: IssueType, n
       notReceivedWaitDays: policy.notReceivedWaitDays,
     },
     issueType,
-    order: { status: order.status, amountCents: order.amountCents, refundedCents: order.refundedCents },
+    order: { status: order.status, amountCents: order.amountCents, refundedCents: order.refundedCents, paidThroughPayPal: !!order.paypalCaptureId },
     shipment: latest ? { status: latest.status, shippedAt: latest.shippedAt } : null,
     reshipCount,
     priorResolution: completedRefund || order.refundedCents > 0 ? "refund" : reshipCount > 0 ? "reship" : null,

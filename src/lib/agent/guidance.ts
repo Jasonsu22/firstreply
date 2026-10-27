@@ -7,6 +7,7 @@ import type { ReasonCode } from "@/lib/policy/engine";
 export const BUYER_GUIDANCE: Record<ReasonCode, string> = {
   NO_MONEY_INVOLVED: "Explain clearly.",
   ORDER_NOT_PAID: "This order isn't paid, so there's nothing to refund. Explain kindly.",
+  NOT_A_PAYPAL_PAYMENT: "This fix has to be handled by the store team personally. Call escalate_to_human and tell the buyer the team will follow up.",
   NOTHING_LEFT_TO_REFUND: "This order has already been fully refunded. Tell the buyer and mention refunds can take a few days to show.",
   INVALID_AMOUNT: "That amount isn't possible for this order. Pick a smaller partial refund or a full refund.",
   ALREADY_RESOLVED: "This order was already resolved. Explain what was done; don't offer a second fix.",

@@ -181,6 +181,14 @@ describe("bad input and manipulation", () => {
     expect(result.reasons[0].code).toBe("ORDER_NOT_PAID");
   });
 
+  it("denies money fixes on orders with no PayPal payment on file", () => {
+    for (const type of ["full_refund", "reship"] as const) {
+      const result = evaluateProposal({ type }, context({ order: { status: "captured", amountCents: 4500, refundedCents: 0, paidThroughPayPal: false } }));
+      expect(result.decision).toBe("denied");
+      expect(result.reasons[0].code).toBe("NOT_A_PAYPAL_PAYMENT");
+    }
+  });
+
   it.each([
     ["more than the order", 99900],
     ["the full amount (use a full refund)", 4500],

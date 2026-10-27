@@ -27,6 +27,8 @@ export type PolicyContext = {
     status: "created" | "captured" | "partially_refunded" | "refunded" | "cancelled";
     amountCents: number;
     refundedCents: number;
+    /** False for orders with no PayPal capture (e.g. imported or seeded history): PayPal can't refund or track them. */
+    paidThroughPayPal?: boolean;
   };
   /** Latest shipment for the order, or null if it hasn't shipped. */
   shipment: { status: "shipped" | "on_hold" | "delivered" | "cancelled" | "lost"; shippedAt: Date } | null;
@@ -40,6 +42,7 @@ export type PolicyContext = {
 export type ReasonCode =
   | "NO_MONEY_INVOLVED"
   | "ORDER_NOT_PAID"
+  | "NOT_A_PAYPAL_PAYMENT"
   | "NOTHING_LEFT_TO_REFUND"
   | "INVALID_AMOUNT"
   | "ALREADY_RESOLVED"
@@ -83,6 +86,9 @@ export function evaluateProposal(proposal: Proposal, ctx: PolicyContext): Policy
   // ── The order must be paid and have money left to give back ────────────────
   if (ctx.order.status === "created" || ctx.order.status === "cancelled") {
     return finish([reason("ORDER_NOT_PAID", "denied", "The order isn't paid, so there's nothing to fix with money.")], null);
+  }
+  if (ctx.order.paidThroughPayPal === false) {
+    return finish([reason("NOT_A_PAYPAL_PAYMENT", "denied", "This order has no PayPal payment on file, so a refund or replacement can't go through PayPal.")], null);
   }
   const refundable = ctx.order.amountCents - ctx.order.refundedCents;
   const amountCents = resolveAmount(proposal, refundable);
