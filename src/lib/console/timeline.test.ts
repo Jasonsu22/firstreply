@@ -54,6 +54,13 @@ describe("describeAction", () => {
     });
   });
 
+  it("describes a dispute arriving from PayPal", () => {
+    const e = describeAction(
+      row({ tool: "dispute_opened", actor: "worker", arguments: { dispute_id: "PP-R-ABC-1", source: "poll" }, result: { stage: "inquiry", status: "WAITING_FOR_SELLER_RESPONSE", amount_cents: 64500 } }),
+    );
+    expect(e).toMatchObject({ title: "Buyer opened a PayPal inquiry for $645.00", detail: "PP-R-ABC-1 · waiting for seller response", tone: "error" });
+  });
+
   it("falls back to the tool name for unknown tools", () => {
     expect(describeAction(row({ tool: "something_new" })).title).toBe("something new");
   });

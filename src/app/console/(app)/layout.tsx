@@ -8,7 +8,7 @@ import { requireMerchant } from "@/lib/merchant-session";
 const NAV = [
   { href: "/console", label: "Cases", icon: Inbox, ready: true },
   { href: "/console/approvals", label: "Approvals", icon: CheckSquare, ready: true },
-  { href: "/console/disputes", label: "Disputes", icon: Gavel, ready: false },
+  { href: "/console/disputes", label: "Disputes", icon: Gavel, ready: true },
   { href: "/console/policies", label: "Policies", icon: SlidersHorizontal, ready: true },
   { href: "/console/impact", label: "Impact", icon: BarChart3, ready: false },
 ];

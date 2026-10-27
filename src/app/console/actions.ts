@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { merchantUsers } from "@/db/schema";
 import { approve, ApprovalError, reject } from "@/lib/console/approvals";
 import { PolicyForm, savePolicy, type PolicyValues } from "@/lib/console/policies";
+import { fetchDispute, syncDisputes, upsertDispute } from "@/lib/disputes/sync";
 import { checkPassword, demoConsoleOpen, endMerchantSession, requireMerchant, startMerchantSession } from "@/lib/merchant-session";
 import { formatCents } from "@/lib/money";
 
@@ -95,4 +96,25 @@ export async function savePolicyAction(_prev: PolicySaveState, form: FormData): 
   const { changed, rescored } = await savePolicy(session.merchantId, session.email, parsed.data);
   if (!changed) return { ok: "No changes.", values: parsed.data };
   return { values: parsed.data, ok: `Saved ${changed} change${changed > 1 ? "s" : ""}.${rescored ? ` Re-scored ${rescored} buyers with the new thresholds.` : ""} The agent uses them from the next message.` };
+}
+
+// ── Disputes (day 10) ─────────────────────────────────────────────────────────
+
+export async function checkDisputesNowAction(): Promise<DecisionResult> {
+  const session = await requireMerchant();
+  const r = await syncDisputes(session.merchantId, "manual");
+  if (r.errors.length && !r.checked) return { ok: false, error: `PayPal didn't answer: ${r.errors[0]}` };
+  const news = r.created || r.updated ? `${r.created} new, ${r.updated} updated` : "No changes";
+  return { ok: true, message: `${news}. PayPal's list can lag a few minutes behind — add a dispute by its ID to see it at once.` };
+}
+
+export async function addDisputeAction(disputeId: string): Promise<DecisionResult> {
+  const session = await requireMerchant();
+  try {
+    const { dispute, isNew } = await upsertDispute(session.merchantId, await fetchDispute(disputeId.trim().toUpperCase()), "manual");
+    const match = dispute.orderId ? "matched to its order" : "no matching order in this store";
+    return { ok: true, message: `${dispute.paypalDisputeId} ${isNew ? "added" : "refreshed"} — ${match}.` };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }

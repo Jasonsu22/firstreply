@@ -2,6 +2,7 @@
  * Turns audit-log rows (`actions`) into plain-language timeline entries for the merchant console.
  * Pure, so it's unit-tested; the raw arguments and result stay one click away in the UI.
  */
+import { disputeStageLabel } from "@/lib/disputes/map";
 import { formatCents } from "@/lib/money";
 
 export type ActionRow = {
@@ -88,6 +89,19 @@ export function describeAction(row: ActionRow): TimelineEntry {
       return { title: `Approved by ${String(args.by ?? "the store team")}`, detail: row.agentReason ?? undefined, tone: "allowed", reasons: [] };
     case "reject_offer":
       return { title: `Rejected by ${String(args.by ?? "the store team")}`, detail: row.agentReason ? `Note to buyer: “${row.agentReason}”` : undefined, tone: "denied", reasons: [] };
+    case "dispute_opened":
+    case "dispute_updated": {
+      const stage = disputeStageLabel(String(result.stage ?? "inquiry"));
+      const status = String(result.status ?? "").toLowerCase().replace(/_/g, " ");
+      const amount = typeof result.amount_cents === "number" ? ` for ${formatCents(result.amount_cents)}` : "";
+      const outcome = result.outcome ? ` — outcome: ${words(String(result.outcome))}` : "";
+      return {
+        title: row.tool === "dispute_opened" ? `Buyer opened a PayPal ${stage}${amount}` : `PayPal ${stage} moved to “${status}”${outcome}`,
+        detail: `${String(args.dispute_id ?? "")} · ${row.tool === "dispute_opened" ? status : `seen via ${String(args.source ?? "poll")}`}`,
+        tone: result.outcome === "won_by_seller" || result.outcome === "cancelled" ? "allowed" : "error",
+        reasons: [],
+      };
+    }
     case "mark_resolved":
       return { title: "Marked resolved", tone: "allowed", reasons };
     default:

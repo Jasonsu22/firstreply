@@ -18,7 +18,8 @@
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",
-    "agent:chat": "tsx scripts/agent-chat.ts"
+    "agent:chat": "tsx scripts/agent-chat.ts",
+    "disputes:sync": "tsx scripts/disputes-sync.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.88",

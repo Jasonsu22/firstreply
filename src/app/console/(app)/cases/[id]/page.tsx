@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   CircleX,
   Clock,
+  Gavel,
   Package,
   Search,
   ShieldCheck,
@@ -20,6 +21,7 @@ import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 import { ISSUE_LABEL, RESOLUTION_LABEL, StatusBadge, TierBadge } from "@/components/console/badges";
 import { getCaseDetail, type CaseDetail, type TimelineItem } from "@/lib/console/cases";
+import { disputeReasonLabel, disputeStageLabel, humanStatus } from "@/lib/disputes/map";
 import type { Tone } from "@/lib/console/timeline";
 import { requireMerchant } from "@/lib/merchant-session";
 import { formatCents } from "@/lib/money";
@@ -167,6 +169,34 @@ function Overview({ d }: { d: CaseDetail }) {
   );
 }
 
+function DisputeBanner({ dispute, caseOpenedAt }: { dispute: CaseDetail["disputes"][number]; caseOpenedAt: string }) {
+  const contactedFirst = new Date(caseOpenedAt) < dispute.createdAtPaypal;
+  const done = dispute.outcome != null;
+  return (
+    <section
+      className={`flex flex-col gap-2 rounded-xl border p-4 text-sm ${done ? "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40"}`}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <Gavel className="size-4 text-red-700 dark:text-red-400" />
+        <span className="font-semibold">
+          PayPal {disputeStageLabel(dispute.stage)} · {disputeReasonLabel(dispute.reason)} · {formatCents(dispute.amountCents, dispute.currency)}
+        </span>
+        <span className="font-mono text-xs text-zinc-500">{dispute.paypalDisputeId}</span>
+        <span className="ml-auto text-xs text-zinc-600 dark:text-zinc-400">
+          {done ? `Outcome: ${dispute.outcome!.replace(/_/g, " ")}` : humanStatus(dispute.status)}
+          {!done && dispute.sellerResponseDueAt && ` · respond by ${dateTime.format(dispute.sellerResponseDueAt)}`}
+        </span>
+      </div>
+      <p className="text-zinc-700 dark:text-zinc-300">
+        {contactedFirst
+          ? "The buyer talked to the agent before disputing — the conversation and offers below are your evidence."
+          : "The buyer went straight to PayPal without contacting the store."}{" "}
+        {dispute.allowedActions.length > 0 ? `PayPal lets you: ${dispute.allowedActions.map((a) => a.replace(/_/g, " ")).join(", ")}.` : "PayPal is reviewing — no seller action available right now."}
+      </p>
+    </section>
+  );
+}
+
 async function CaseView({ params }: Pick<PageProps<"/console/cases/[id]">, "params">) {
   await connection();
   const [session, { id }] = await Promise.all([requireMerchant(), params]);
@@ -181,6 +211,10 @@ async function CaseView({ params }: Pick<PageProps<"/console/cases/[id]">, "para
         <span className="text-sm text-zinc-600 dark:text-zinc-400">{ISSUE_LABEL[d.case.issueType]}</span>
         <span className="text-sm text-zinc-500">· opened {dateTime.format(new Date(d.case.openedAt))}</span>
       </header>
+
+      {d.disputes.map((dispute) => (
+        <DisputeBanner key={dispute.id} dispute={dispute} caseOpenedAt={d.case.openedAt} />
+      ))}
 
       <Overview d={d} />
 

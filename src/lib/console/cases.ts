@@ -6,6 +6,7 @@ import { buildCaseSummary } from "@/lib/agent/cases";
 import { toBubbles } from "@/lib/help/state";
 import { effectiveTier } from "@/lib/policy/trust";
 import { listApprovals } from "./approvals";
+import { disputesForCase } from "./disputes";
 import { describeAction, type TimelineEntry } from "./timeline";
 
 export type CaseRow = {
@@ -97,6 +98,7 @@ export async function getCaseDetail(merchantId: string, caseId: string) {
     db.select().from(approvals).where(eq(approvals.caseId, caseId)).orderBy(asc(approvals.createdAt)),
     buildCaseSummary(caseId),
   ]);
+  const caseDisputes = await disputesForCase(caseId);
 
   const timeline: TimelineItem[] = actionRows.map((a) => ({
     ...describeAction(a),
@@ -119,6 +121,7 @@ export async function getCaseDetail(merchantId: string, caseId: string) {
     refunds: caseRefunds,
     facts,
     approvals: caseApprovals,
+    disputes: caseDisputes,
   };
 }
 

@@ -5,41 +5,17 @@
  * agent's last policy decision; quick search; status chips that filter the rows; rows refresh every
  * few seconds so a case changes in place while the agent is working on it.
  */
-import { AllCommunityModule, colorSchemeDark, ModuleRegistry, themeQuartz, type ColDef, type RowClassRules } from "ag-grid-community";
+import type { ColDef, RowClassRules } from "ag-grid-community";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react";
 import { LoaderCircle, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { approveAction, rejectAction, type DecisionResult } from "@/app/console/actions";
 import type { CaseRow } from "@/lib/console/cases";
 import { DecisionText, ISSUE_LABEL, RESOLUTION_LABEL, StatusBadge, TierBadge } from "./badges";
-
-ModuleRegistry.registerModules([AllCommunityModule]);
+import { darkTheme, lightTheme, useDarkMode } from "./grid-theme";
 
 const POLL_MS = 5000;
-
-const baseTheme = themeQuartz.withParams({
-  accentColor: "#047857",
-  fontFamily: "inherit",
-  fontSize: 13,
-  headerFontWeight: 600,
-  wrapperBorderRadius: 12,
-  rowVerticalPaddingScale: 1.1,
-});
-const lightTheme = baseTheme.withParams({ backgroundColor: "#ffffff", headerBackgroundColor: "#fafafa" });
-const darkTheme = baseTheme.withPart(colorSchemeDark).withParams({ backgroundColor: "#18181b", headerBackgroundColor: "#1f1f23" });
-
-function subscribeDark(callback: () => void) {
-  const query = window.matchMedia("(prefers-color-scheme: dark)");
-  query.addEventListener("change", callback);
-  return () => query.removeEventListener("change", callback);
-}
-const useDarkMode = () =>
-  useSyncExternalStore(
-    subscribeDark,
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
-    () => false,
-  );
 
 const money = (cents: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
 

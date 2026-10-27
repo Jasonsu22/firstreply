@@ -18,6 +18,7 @@ import {
   pgEnum,
   pgSequence,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -419,8 +420,12 @@ export const disputes = pgTable(
     currency: char("currency", { length: 3 }).notNull().default("USD"),
     sellerResponseDueAt: ts("seller_response_due_at"),
     outcome: disputeOutcome("outcome"),
+    /** What PayPal lets the seller do right now (from the dispute's links), e.g. make_offer, provide_evidence. */
+    allowedActions: jsonb("allowed_actions").$type<string[]>().notNull().default([]),
     raw: jsonb("raw"),
     createdAtPaypal: ts("created_at_paypal").notNull(),
+    /** PayPal's update_time — a change means the dispute moved and needs a fresh look. */
+    updatedAtPaypal: ts("updated_at_paypal"),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
   (t) => [index("disputes_merchant_status_idx").on(t.merchantId, t.status, t.sellerResponseDueAt)],
@@ -501,3 +506,34 @@ export const chatSessions = pgTable(
   },
   (t) => [index("chat_sessions_order_idx").on(t.orderId)],
 );
+
+// ── Day 10: dispute watcher ───────────────────────────────────────────────────
+
+export const syncKind = pgEnum("sync_kind", ["disputes", "transactions"]);
+
+/** Polling bookmarks: when each merchant's PayPal data was last checked. */
+export const syncState = pgTable(
+  "sync_state",
+  {
+    merchantId: uuid("merchant_id")
+      .notNull()
+      .references(() => merchants.id, { onDelete: "cascade" }),
+    kind: syncKind("kind").notNull(),
+    lastPolledAt: ts("last_polled_at"),
+    cursor: text("cursor"),
+    lastError: text("last_error"),
+  },
+  (t) => [primaryKey({ columns: [t.merchantId, t.kind] })],
+);
+
+/** Every PayPal webhook received: dedupe by event id, keep the payload for replay. */
+export const webhookEvents = pgTable("webhook_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  paypalEventId: text("paypal_event_id").notNull().unique(),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  signatureVerified: boolean("signature_verified").notNull().default(false),
+  receivedAt: ts("received_at").notNull().defaultNow(),
+  processedAt: ts("processed_at"),
+  error: text("error"),
+});
