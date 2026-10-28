@@ -123,5 +123,15 @@ export async function buildCaseSummary(caseId: string): Promise<string> {
   for (const f of facts.filter((f) => f.factType === "inconsistency")) {
     lines.push(`Noted inconsistency: ${(f.value as { observation?: string }).observation}`);
   }
+  const photo = facts.find((f) => f.factType === "photo_assessment");
+  if (photo) {
+    const v = photo.value as { severity?: string; matches_listing?: string; summary?: string; suggested_fix?: string };
+    lines.push(
+      `Photo assessment: severity ${v.severity ?? "unclear"}, matches listing ${v.matches_listing ?? "unclear"}` +
+        (v.summary ? ` — ${v.summary}` : "") +
+        (v.suggested_fix ? ` (suggested: ${v.suggested_fix.replace(/_/g, " ")})` : "") +
+        ".",
+    );
+  }
   return lines.join("\n");
 }

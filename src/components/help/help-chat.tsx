@@ -5,7 +5,7 @@
  * Step 1: verify the order (number + email, or a signed link). Step 2: chat with the agent, with the
  * order on top and Accept / No thanks buttons when there's an offer.
  */
-import { ArrowUp, CircleCheck, Clock, LoaderCircle, Lock, Package, Truck } from "lucide-react";
+import { ArrowUp, CircleCheck, Clock, ImagePlus, LoaderCircle, Lock, Package, Truck, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { ChatStreamLine } from "@/app/api/help/chat/route";
 import type { ChatBubble, ChatState } from "@/lib/help/state";
@@ -19,6 +19,8 @@ const TOOL_STATUS: Record<string, string> = {
   accept_offer: "Setting that up for you…",
   decline_offer: "Noting that…",
   escalate_to_human: "Passing this to the store team…",
+  compare_statement: "Comparing that with your order…",
+  assess_photo: "Looking at your photo…",
 };
 
 const QUICK_STARTS = ["My order hasn't arrived", "It arrived damaged", "I got the wrong item", "I don't recognize this charge"];
@@ -200,8 +202,10 @@ function ChatView({ token, initial, onSessionEnded }: { token: string; initial: 
   const [status, setStatus] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
+  const [photo, setPhoto] = useState<{ dataUrl: string; name: string }>();
   const [error, setError] = useState<string>();
   const bottom = useRef<HTMLDivElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -222,21 +226,41 @@ function ChatView({ token, initial, onSessionEnded }: { token: string; initial: 
     return () => clearInterval(timer);
   }, [waitingOnStore, busy, token]);
 
-  async function send(message: string) {
+  function pickPhoto(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose a photo (JPEG, PNG, WebP or GIF).");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setError("Please choose a photo under 4 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setPhoto({ dataUrl: reader.result, name: file.name });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function send(message: string, imageDataUrl?: string) {
     const text = message.trim();
-    if (!text || busy) return;
+    const image = imageDataUrl ?? photo?.dataUrl;
+    if ((!text && !image) || busy) return;
     setBusy(true);
     setError(undefined);
     setDraft("");
-    setBubbles((b) => [...b, { role: "buyer", text }]);
+    setPhoto(undefined);
+    const bubbleText = text || "📷 Photo attached";
+    setBubbles((b) => [...b, { role: "buyer", text: bubbleText }]);
     setStreaming("");
-    setStatus("Reading your message…");
+    setStatus(image ? "Looking at your photo…" : "Reading your message…");
 
     try {
       const res = await fetch("/api/help/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text || "I attached a photo of the item.", ...(image ? { imageDataUrl: image } : {}) }),
       });
       if (res.status === 401) return onSessionEnded();
       if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).error ?? "Request failed");
@@ -362,6 +386,16 @@ function ChatView({ token, initial, onSessionEnded }: { token: string; initial: 
         <div ref={bottom} />
       </div>
 
+      {photo && (
+        <div className="flex items-center gap-2 border-t border-stone-200 bg-stone-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photo.dataUrl} alt="Attached" className="size-12 rounded-md object-cover" />
+          <span className="min-w-0 flex-1 truncate text-xs text-zinc-600 dark:text-zinc-400">{photo.name}</span>
+          <button type="button" onClick={() => setPhoto(undefined)} aria-label="Remove photo" className="rounded p-1 text-zinc-500 hover:bg-stone-200 dark:hover:bg-zinc-800">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -369,6 +403,26 @@ function ChatView({ token, initial, onSessionEnded }: { token: string; initial: 
         }}
         className="flex items-end gap-2 border-t border-stone-200 p-3 dark:border-zinc-800"
       >
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={(e) => {
+            pickPhoto(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileInput.current?.click()}
+          aria-label="Attach a photo"
+          title="Attach a photo of the item"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 text-zinc-600 hover:bg-stone-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          <ImagePlus className="size-4" />
+        </button>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -380,12 +434,12 @@ function ChatView({ token, initial, onSessionEnded }: { token: string; initial: 
           }}
           rows={1}
           maxLength={2000}
-          placeholder="Type your message…"
+          placeholder={photo ? "Add a note about the photo…" : "Type your message…"}
           aria-label="Your message"
           className="max-h-32 min-h-10 flex-1 resize-none rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 dark:border-zinc-700 dark:bg-zinc-950"
         />
         <button
-          disabled={busy || !draft.trim()}
+          disabled={busy || (!draft.trim() && !photo)}
           aria-label="Send"
           className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-40"
         >

@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: in progress (day 11). Store, checkout, policy engine, the resolution agent, the buyer help chat, the merchant console (cases, timeline, approvals, policies), the dispute watcher and the dispute agent (draft → evidence PDF → submit to PayPal) work; photo/vision and unrecognized-charge flows are next.
+> Status: in progress (day 12). Store, checkout, policy engine, the resolution agent, the buyer help chat (with photo upload + vision assessment), unrecognized-charge matching, the merchant console (cases, timeline, approvals, policies), the dispute watcher and the dispute agent (draft → evidence PDF → submit to PayPal) work; impact dashboard, demo reset and polish are next.
 
 ## Run it locally
 

@@ -64,6 +64,13 @@
       "when": 1793081959410,
       "tag": "0008_day11_dispute_agent",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793160000000,
+      "tag": "0009_day12_photo",
+      "breakpoints": true
     }
   ]
 }

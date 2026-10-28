@@ -18,6 +18,7 @@ import { loadPolicyContext } from "@/lib/policy/context";
 import { evaluateProposal, type IssueType, type ProposalType } from "@/lib/policy/engine";
 import { addFact, audited, logAction } from "./audit";
 import { executeOffer } from "./execute";
+import { matchStatementSnippet } from "./statement";
 import { BUYER_GUIDANCE } from "./guidance";
 import { updateCase, type Case } from "./cases";
 
@@ -76,6 +77,8 @@ export function createResolutionTools(session: AgentSession) {
             payment_status: paypal?.purchase_units?.[0]?.payments?.captures?.[0]?.status ?? "unknown",
             ships_to: [order.shippingAddress?.admin_area_2, order.shippingAddress?.admin_area_1].filter(Boolean).join(", "),
             statement_descriptor: order.softDescriptor,
+            /** How this charge typically appears on a card or bank statement. */
+            appears_on_statement_as: order.softDescriptor ? `PAYPAL *${order.softDescriptor}` : null,
           };
         });
         await addFact(caseId, "order_details", result, actionId);
@@ -256,6 +259,34 @@ export function createResolutionTools(session: AgentSession) {
         const action = await logAction({ ...meta("record_inconsistency", { observation }), status: "ok", result: { recorded: true } });
         await addFact(caseId, "inconsistency", { observation }, action.id);
         return { ok: true };
+      },
+    }),
+
+
+    compare_statement: tool({
+      description:
+        "Compare text the buyer pasted from their card or bank statement with THIS order (amount, soft descriptor, order number). Use for unrecognized charges. Read-only.",
+      inputSchema: z.object({ statement_text: z.string().min(3).max(500).describe("Exactly what the buyer pasted from their statement") }),
+      execute: async ({ statement_text }) => {
+        const { result, actionId } = await audited(meta("compare_statement", { statement_text }), async () => {
+          const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+          const match = matchStatementSnippet(statement_text, {
+            orderNumber: order.orderNumber,
+            amountCents: order.amountCents,
+            currency: order.currency,
+            softDescriptor: order.softDescriptor,
+            placedOn: dateOnly(order.capturedAt ?? order.createdAt),
+          });
+          return {
+            ...match,
+            order_number: order.orderNumber,
+            order_total: formatCents(order.amountCents),
+            appears_on_statement_as: order.softDescriptor ? `PAYPAL *${order.softDescriptor}` : null,
+            placed_on: dateOnly(order.capturedAt ?? order.createdAt),
+          };
+        });
+        await addFact(caseId, "order_details", { statement_compare: result }, actionId);
+        return result;
       },
     }),
 

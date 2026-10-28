@@ -244,6 +244,7 @@ export const factType = pgEnum("fact_type", [
   "offer_declined",
   "inconsistency",
   "order_details",
+  "photo_assessment",
 ]);
 export const offerType = pgEnum("offer_type", ["full_refund", "partial_refund", "reship", "return_then_refund"]);
 export const offerStatus = pgEnum("offer_status", [
