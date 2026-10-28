@@ -44,3 +44,6 @@ next-env.d.ts
 # buyer photo uploads (local demo)
 /data/uploads/
 AGENTS.md
+
+# local recording scratch
+docs/video/raw/
