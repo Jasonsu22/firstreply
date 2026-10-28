@@ -1,0 +1,11 @@
+Merchants lose five dollars thirteen for every dollar of fraud once fees, goods, and labor are counted. And fifty-eight percent of cardholders never contact the merchant before they dispute. Response time is the gap. FirstReply closes it.
+
+A buyer opens help from the store. Order verified. She says the package never came. The agent doesn’t guess — it checks live PayPal tracking. The shipment is stuck on hold. Within policy, it offers a reship or a refund. She takes the refund. Money moves through PayPal. No dispute filed. Under a minute.
+
+Every step lands in the merchant console: the chat, the tracking check, the policy decision. AI judgment — hard-coded money limits. A Watch-tier buyer’s claim waits in Approvals with the reasons shown. The merchant stays in control.
+
+A different buyer refuses the fix and files a PayPal dispute. It shows up in the console. FirstReply already holds the record — the offer, the decline, the tracking proof — and drafts the evidence package. The merchant reviews and clicks Submit. The winning case was built while we were still trying to prevent the dispute.
+
+Impact: disputes prevented, dollars saved at the true cost of fraud, minutes instead of days. Built with an LLM agent, the PayPal Agent Toolkit, and a code policy engine — so money never moves because the model said so.
+
+Most tools help merchants win disputes. FirstReply makes sure the dispute never happens — and if it does, the winning case is already built.

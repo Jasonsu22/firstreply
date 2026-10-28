@@ -1,0 +1,108 @@
+1
+00:00:00,050 --> 00:00:08,453
+Merchants lose five dollars thirteen for every dollar of fraud once fees, goods, and labor are counted.
+
+2
+00:00:08,453 --> 00:00:14,500
+And fifty-eight percent of cardholders never contact the merchant before they dispute.
+
+3
+00:00:14,500 --> 00:00:16,500
+Response time is the gap.
+
+4
+00:00:16,500 --> 00:00:18,593
+FirstReply closes it.
+
+5
+00:00:18,593 --> 00:00:21,203
+A buyer opens help from the store.
+
+6
+00:00:21,203 --> 00:00:22,703
+Order verified.
+
+7
+00:00:22,703 --> 00:00:25,140
+She says the package never came.
+
+8
+00:00:25,140 --> 00:00:29,609
+The agent doesn’t guess — it checks live PayPal tracking.
+
+9
+00:00:29,609 --> 00:00:31,765
+The shipment is stuck on hold.
+
+10
+00:00:31,765 --> 00:00:36,156
+Within policy, it offers a reship or a refund.
+
+11
+00:00:36,156 --> 00:00:37,921
+She takes the refund.
+
+12
+00:00:37,921 --> 00:00:39,984
+Money moves through PayPal.
+
+13
+00:00:39,984 --> 00:00:41,687
+No dispute filed.
+
+14
+00:00:41,687 --> 00:00:42,999
+Under a minute.
+
+15
+00:00:42,999 --> 00:00:50,328
+Every step lands in the merchant console: the chat, the tracking check, the policy decision.
+
+16
+00:00:50,328 --> 00:00:54,046
+AI judgment — hard-coded money limits.
+
+17
+00:00:54,046 --> 00:00:58,937
+A Watch-tier buyer’s claim waits in Approvals with the reasons shown.
+
+18
+00:00:58,937 --> 00:01:01,203
+The merchant stays in control.
+
+19
+00:01:01,203 --> 00:01:06,171
+A different buyer refuses the fix and files a PayPal dispute.
+
+20
+00:01:06,171 --> 00:01:08,218
+It shows up in the console.
+
+21
+00:01:08,218 --> 00:01:17,703
+FirstReply already holds the record — the offer, the decline, the tracking proof — and drafts the evidence package.
+
+22
+00:01:17,703 --> 00:01:20,703
+The merchant reviews and clicks Submit.
+
+23
+00:01:20,703 --> 00:01:25,734
+The winning case was built while we were still trying to prevent the dispute.
+
+24
+00:01:25,734 --> 00:01:33,718
+Impact: disputes prevented, dollars saved at the true cost of fraud, minutes instead of days.
+
+25
+00:01:33,718 --> 00:01:43,874
+Built with an LLM agent, the PayPal Agent Toolkit, and a code policy engine — so money never moves because the model said so.
+
+26
+00:01:43,874 --> 00:01:46,968
+Most tools help merchants win disputes.
+
+27
+00:01:46,968 --> 00:01:55,140
+FirstReply makes sure the dispute never happens — and if it does, the winning case is already built.
+
