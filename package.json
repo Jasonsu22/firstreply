@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "agent:chat": "tsx scripts/agent-chat.ts",
+    "eval:scenarios": "tsx scripts/scenario-eval.ts",
     "disputes:sync": "tsx scripts/disputes-sync.ts",
     "disputes:draft": "tsx scripts/dispute-draft.ts"
   },

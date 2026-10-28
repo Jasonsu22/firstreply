@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: in progress (day 13). Store, checkout, policy engine, the resolution agent, the buyer help chat (photo upload + vision, unrecognized-charge match), the merchant console (cases, timeline, approvals, policies, **impact**), the dispute watcher + dispute agent, and the **demo panel** (scenarios + one-click reset) work; scenario eval and submission polish are next.
+> Status: in progress (day 14). Prevention + disputes + impact + demo reset work; **scenario eval** (~20 scripted buyers, incl. injection) is green — see pass rate below. Submission polish (README/Devpost) is next.
 
 ## Run it locally
 
@@ -51,10 +51,17 @@ Check everything is wired up: <http://localhost:3000/api/health>
 | `npm run disputes:sync` | One dispute-watcher pass (`-- PP-R-…` to pull one dispute by ID) |
 | `npm run paypal:spike` | Exercises each PayPal sandbox call we use (run with no arguments for the list) |
 | `npm run agent:chat -- FR-20002` | Chat with the resolution agent in the terminal as the buyer of an order (add `--say "…"` to script it) |
-| `npm test` | Unit tests (policy engine, trust tiers, buyer guidance) |
+| `npm run eval:scenarios` | Scenario eval (~20 scripted buyers; add `-- --live` for LLM end-to-end) |
+| `npm test` | Unit tests (policy engine, trust tiers, buyer guidance, scenario catalog) |
 | `npm run db:generate` | Creates a migration after changing `src/db/schema.ts` |
 | `npm run db:studio` | Browse the database |
 | `npm run db:down` | Stop the local database |
+
+## Scenario eval
+
+`npm run eval:scenarios` runs the Day 14 catalog: prevention, trust tiers, unrecognized-charge, statement matching, prompt-injection hardening and buyer-guidance leak checks. Live LLM scripts are opt-in (`-- --live`) because they call the gateway and PayPal-shaped tools.
+
+**Pass rate (deterministic): 22/22 (100%).** Live LLM scripts: `npm run eval:scenarios -- --live` (optional; needs the gateway).
 
 ## Stack
 
