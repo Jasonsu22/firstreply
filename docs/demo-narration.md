@@ -113,3 +113,34 @@ Most tools help merchants win disputes. FirstReply makes sure the dispute never 
 ## Exact closing pitch (do not paraphrase on the card)
 
 Most tools help merchants win disputes. FirstReply makes sure the dispute never happens — and if it does, the winning case is already built.
+
+---
+
+## 中文旁白（完整 VO）
+
+**音频：** `docs/video/narration.zh.mp3`（约 1:47，`zh-CN-YunyangNeural`）  
+**文稿：** `docs/video/narration.zh.txt`
+
+### A — 问题
+
+商家每遇到一美元欺诈，实际要亏五美元十三美分——手续费、货品和人工都算上。还有百分之五十八的持卡人，争议前根本不先联系商家。缺口就是响应速度。FirstReply 补上它。
+
+### B — 场景一：预防
+
+买家从店铺打开帮助，订单已验证。她说包裹一直没到。Agent 不瞎猜，而是查 PayPal 实时物流。货还卡在途中。在政策范围内，它给出补发或退款。她选退款。钱经 PayPal 打出。没有开争议。全程不到一分钟。
+
+### C — 商家视图
+
+每一步都进商家控制台：对话、物流核对、政策判定。AI 负责判断，金额上限写死在代码里。Watch 层级买家的申请进审批队列，原因一目了然。商家始终说了算。
+
+### D — 场景二：争议
+
+另一位买家拒绝方案，去 PayPal 开了争议。控制台马上出现。FirstReply 早就留好记录——当时的方案、对方的拒绝、物流证据——并起草证据包。商家审完点提交。胜诉材料，是在我们还在预防争议时就建好的。
+
+### E — Impact + 收尾
+
+Impact：预防了多少争议、按真实欺诈成本省了多少钱、分钟级而不是天级。技术栈是 LLM Agent、PayPal Agent Toolkit，再加代码级政策引擎——钱不会因为模型一句话就动。
+
+多数工具帮商家打赢争议。FirstReply 先让争议别发生——真发生了，胜诉卷宗也已经备好。
+
+> 说明：Devpost / YouTube 评委版建议用 **英文旁白**；中文版给你自己听、给中文观众用。两版画面可共用。
