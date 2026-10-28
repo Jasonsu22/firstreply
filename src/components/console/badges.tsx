@@ -1,6 +1,6 @@
-/** Small status pills shared by the cases grid and the case page. Plain components: usable on server and client. */
+/** Small status pills shared by the console grids and the case page. Plain components: usable on server and client. */
 
-const pill = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap";
+export const pill = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap";
 
 const STATUS: Record<string, { label: string; tone: string }> = {
   open: { label: "Open", tone: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300" },

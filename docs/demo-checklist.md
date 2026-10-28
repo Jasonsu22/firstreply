@@ -25,8 +25,13 @@ Video script outline: see PLAN.md §11. Devpost copy: [devpost.md](./devpost.md)
 
 ## Scene 3 — Dispute
 
-1. Hand-file or sync a PayPal sandbox dispute (`npm run disputes:sync` / “Check PayPal now”).
-2. Disputes tab → Draft with agent → preview evidence PDF → Submit (guarded).
+FirstReply links a dispute to an order by PayPal **capture ID** only, so the dispute has to be on a payment made through this store's checkout, on the same database the console reads. Disputes on Day 1 `paypal:spike` payments, on checkouts from another deployment (local vs Render share the sandbox account), or on orders wiped by a demo reset show as “Not a store order”.
+
+1. Do any demo reset **before** this scene — a reset deletes sandbox-captured orders, and their disputes can't re-link.
+2. Store → buy with the sandbox personal buyer (John Doe). This creates the order with a real capture ID; `/demo` scenario orders use simulated captures and can't be disputed in PayPal.
+3. Private window → <https://www.sandbox.paypal.com> as that buyer → Activity → that payment → Report a problem → “I didn't receive my item”.
+4. Console → Disputes → “Add by ID” with the `PP-R-…` ID (the list endpoint lags a few minutes) or “Check PayPal now”. The row shows the order number.
+5. Open it → Draft with agent → preview evidence PDF → Submit (guarded).
 
 ## Close
 
