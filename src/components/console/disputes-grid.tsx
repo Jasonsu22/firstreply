@@ -14,11 +14,11 @@ import { useCallback, useEffect, useMemo, useState, useTransition, type FormEven
 import { addDisputeAction, checkDisputesNowAction, type DecisionResult } from "@/app/console/actions";
 import type { DisputeRow } from "@/lib/console/disputes";
 import { disputeReasonLabel, humanStatus } from "@/lib/disputes/map";
+import { pill } from "./badges";
 import { darkTheme, lightTheme, useDarkMode } from "./grid-theme";
 
 const POLL_MS = 15_000;
 const money = (cents: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
-const pill = "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap";
 
 const STAGE_TONE: Record<string, string> = {
   inquiry: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
@@ -66,8 +66,8 @@ const OrderCell = ({ data }: CustomCellRendererProps<DisputeRow>) =>
       <span className="font-semibold">{data.orderNumber}</span>
     )
   ) : (
-    <span className="text-xs text-zinc-500" title="The disputed payment isn't an order from this store (e.g. an earlier sandbox test).">
-      No matching order
+    <span className="text-xs text-zinc-500" title={`PayPal capture ${data?.captureId ?? "(none)"} isn't a payment from this store's checkout — e.g. a sandbox test payment, or an order removed by a demo reset.`}>
+      Not a store order
     </span>
   );
 
@@ -76,15 +76,17 @@ const StageCell = ({ data }: CustomCellRendererProps<DisputeRow>) => (data ? <sp
 const DueCell = ({ data }: CustomCellRendererProps<DisputeRow>) => {
   if (!data) return null;
   if (data.outcome) return <span className="text-zinc-400">—</span>;
+  if (!data.sellerResponseDueAt) return <span className="text-zinc-400">—</span>;
   const c = countdown(data.sellerResponseDueAt);
   return <span className={c.urgent ? "font-medium text-red-700 dark:text-red-400" : ""}>{c.text}</span>;
 };
 
+// Labels, not buttons: what PayPal lets the seller do right now. The actions themselves are on the dispute page.
 const ActionsCell = ({ data }: CustomCellRendererProps<DisputeRow>) =>
   data?.allowedActions.length ? (
-    <span className="flex flex-wrap gap-1">
+    <span className="flex flex-wrap items-center gap-1 py-2 leading-none">
       {data.allowedActions.map((a) => (
-        <span key={a} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+        <span key={a} className={`${pill} bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300`}>
           {ACTION_LABEL[a] ?? a}
         </span>
       ))}
@@ -151,7 +153,7 @@ export function DisputesGrid({ initialRows, initialCheck }: { initialRows: Dispu
       { field: "status", headerName: "PayPal status", valueFormatter: (p) => humanStatus(p.value), width: 210, enableCellChangeFlash: true },
       { field: "amountCents", headerName: "Amount", type: "rightAligned", valueFormatter: (p) => money(p.value, p.data?.currency), width: 105, cellClass: "tabular-nums" },
       { field: "sellerResponseDueAt", headerName: "Respond by", cellRenderer: DueCell, width: 120, comparator: (a, b) => (a ?? "9").localeCompare(b ?? "9") },
-      { field: "allowedActions", headerName: "You can", cellRenderer: ActionsCell, width: 210, sortable: false, autoHeight: true, wrapText: true },
+      { field: "allowedActions", headerName: "You can", cellRenderer: ActionsCell, width: 240, sortable: false, autoHeight: true, wrapText: true },
       { field: "contactedFirst", headerName: "Talked to us first?", cellRenderer: FirstCell, width: 160 },
       { field: "outcome", headerName: "Outcome", cellRenderer: OutcomeCell, width: 130, enableCellChangeFlash: true },
       { field: "openedAt", headerName: "Opened", sort: "desc", valueFormatter: (p) => new Date(p.value).toLocaleDateString("en-US", { month: "short", day: "numeric" }), width: 105 },
@@ -160,6 +162,7 @@ export function DisputesGrid({ initialRows, initialCheck }: { initialRows: Dispu
   );
 
   const lastChecked = check?.lastPolledAt ? new Date(check.lastPolledAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "never";
+  const unmatched = rows.filter((r) => !r.orderNumber).length;
 
   return (
     <div className="flex flex-col gap-3">
@@ -191,6 +194,16 @@ export function DisputesGrid({ initialRows, initialCheck }: { initialRows: Dispu
       {result && (
         <p className={`rounded-lg px-3 py-2 text-sm ${result.ok ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" : "bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-300"}`}>
           {result.ok ? result.message : result.error}
+        </p>
+      )}
+      {unmatched > 0 && (
+        <p className="text-xs text-zinc-500">
+          {unmatched === rows.length ? "None of these disputes are" : `${unmatched} of ${rows.length} disputes aren't`} on a payment from this store&apos;s checkout, so there&apos;s no order to link —
+          FirstReply matches by PayPal capture ID. For a linked dispute, buy in the{" "}
+          <Link href="/store" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+            store
+          </Link>{" "}
+          as a sandbox buyer, then report a problem on that payment in PayPal.
         </p>
       )}
       <div className="h-[calc(100vh-16rem)] min-h-[360px]">
