@@ -48,11 +48,17 @@ export default function Home() {
         <Link href="/store" className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800">
           Open the demo store
         </Link>
+        <Link href="/s/trailhead" className="rounded-lg border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900">
+          Order help
+        </Link>
         <Link href="/console" className="rounded-lg border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900">
           Merchant console
         </Link>
+        <Link href="/console/impact" className="rounded-lg border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900">
+          Impact
+        </Link>
         <Link href="/demo" className="rounded-lg border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900">
-          Demo control panel
+          Demo panel
         </Link>
       </nav>
 

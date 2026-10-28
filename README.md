@@ -2,13 +2,17 @@
 
 **The merchant answers before the bank does.** An AI agent that resolves order problems through PayPal in minutes — refund, reship or a clear explanation, within rules the merchant sets — and builds the evidence package if a dispute is filed anyway.
 
-Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
+Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/).
 
-> Status: in progress (day 14). Prevention + disputes + impact + demo reset work; **scenario eval** (~20 scripted buyers, incl. injection) is green — see pass rate below. Submission polish (README/Devpost) is next.
+**Docs:** [Setup guide](docs/setup.md) · [Architecture](docs/architecture.md) · [Devpost copy](docs/devpost.md) · [Database](docs/DATABASE.md) · [Deploy (Render + Neon)](docs/deploy-render.md) · [PLAN.md](PLAN.md)
+
+**Pitch:** *Most tools help merchants win disputes. FirstReply makes sure the dispute never happens — and if it does, the winning case is already built.*
+
+> Status: **ready for video / Devpost** (day 15). Prevention, disputes, impact, demo reset and scenario eval (22/22) are in. Setup guide, architecture and Devpost copy are under `docs/`.
 
 ## Run it locally
 
-Requirements: Node 24, Docker, a PayPal **sandbox** app (developer.paypal.com), and an LLM API that supports tool calling (OpenAI- or Anthropic-format).
+Full walkthrough: **[docs/setup.md](docs/setup.md)**. Requirements: Node 24, Docker, a PayPal **sandbox** app (developer.paypal.com), and an LLM API that supports tool calling (OpenAI- or Anthropic-format).
 
 ```bash
 npm install
@@ -63,10 +67,14 @@ Check everything is wired up: <http://localhost:3000/api/health>
 
 **Pass rate (deterministic): 22/22 (100%).** Live LLM scripts: `npm run eval:scenarios -- --live` (optional; needs the gateway).
 
+## Production note
+
+Connecting a real merchant would use PayPal **partner onboarding** ("Connect with PayPal"). That flow is blocked for hackathon sandbox apps, so this demo pastes sandbox Client ID / Secret (see `.env.example`). The product path is Connect-with-PayPal once partner access is available.
+
 ## Stack
 
 Next.js · TypeScript · Tailwind · PostgreSQL + Drizzle · Vercel AI SDK (any OpenAI/Anthropic-compatible model) · PayPal Agent Toolkit + REST APIs · hosted on Render (`render.yaml`).
 
 ## License
 
-MIT
+[MIT](LICENSE)
