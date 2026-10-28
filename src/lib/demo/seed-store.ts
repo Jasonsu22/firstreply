@@ -88,26 +88,11 @@ export async function resetDemoStore(opts: { ifEmpty?: boolean } = {}): Promise<
     // The audit log is append-only; a demo reset is the one place allowed to delete it (see drizzle/0004).
     await tx.execute(sql`SELECT set_config('firstreply.allow_audit_delete', 'on', true)`);
 
-    // approvals.decided_by and dispute_submissions.submitted_by reference merchant_users
-    // with ON DELETE NO ACTION. Postgres may cascade-delete merchant_users (via merchants)
-    // before approvals (via cases) are gone, which fails the seed when leftover Day-8+
-    // rows still point at those users. Clear the blockers first.
-    await tx.execute(sql`
-      UPDATE approvals AS a
-      SET decided_by = NULL
-      FROM merchant_users AS mu
-      INNER JOIN merchants AS m ON m.id = mu.merchant_id
-      WHERE a.decided_by = mu.id AND m.slug = ${DEMO_SLUG}
-    `);
-    await tx.execute(sql`
-      UPDATE dispute_submissions AS ds
-      SET submitted_by = NULL
-      FROM merchant_users AS mu
-      INNER JOIN merchants AS m ON m.id = mu.merchant_id
-      WHERE ds.submitted_by = mu.id AND m.slug = ${DEMO_SLUG}
-    `);
-
-    await tx.delete(merchants).where(eq(merchants.slug, DEMO_SLUG));
+    const [existing] = await tx.select({ id: merchants.id }).from(merchants).where(eq(merchants.slug, DEMO_SLUG));
+    if (existing) {
+      await clearTrailheadDeleteBlockers(tx, existing.id);
+      await tx.delete(merchants).where(eq(merchants.id, existing.id));
+    }
 
     const [merchant] = await tx
       .insert(merchants)
@@ -234,4 +219,68 @@ export function demoResetAllowed() {
   if (process.env.DEMO_CONSOLE_OPEN === "true") return true;
   if (process.env.NODE_ENV !== "production") return true;
   return false;
+}
+
+type DemoTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * ON DELETE NO ACTION FKs (drizzle/0001, 0003, 0008) that block DELETE merchants.
+ * Postgres cascade-deletes children of `merchants` one table at a time; a leftover
+ * row that still points at a sibling (actions, products, cases, drafts, …) fails
+ * the whole wipe. Demo reset is allowed to null/delete those references first.
+ * Product FKs stay NO ACTION — this is reset-only.
+ */
+async function clearTrailheadDeleteBlockers(tx: DemoTx, merchantId: string) {
+  await tx.execute(sql`
+    UPDATE order_items AS oi
+    SET product_id = NULL
+    FROM orders AS o
+    WHERE oi.order_id = o.id AND o.merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE orders
+    SET buyer_id = NULL
+    WHERE merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE shipments AS s
+    SET replaces_shipment_id = NULL
+    FROM orders AS o
+    WHERE s.order_id = o.id AND o.merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE approvals AS a
+    SET decided_by = NULL
+    FROM merchant_users AS mu
+    WHERE a.decided_by = mu.id AND mu.merchant_id = ${merchantId}
+  `);
+  // source_action_id is NOT NULL, so leftover facts have to go rather than be nulled.
+  await tx.execute(sql`
+    DELETE FROM case_facts AS cf
+    USING cases AS c
+    WHERE cf.case_id = c.id AND c.merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE offers AS o
+    SET executed_action_id = NULL
+    FROM cases AS c
+    WHERE o.case_id = c.id AND c.merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE refunds AS r
+    SET offer_id = NULL
+    FROM orders AS o
+    WHERE r.order_id = o.id AND o.merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE disputes
+    SET case_id = NULL, buyer_id = NULL
+    WHERE merchant_id = ${merchantId}
+  `);
+  await tx.execute(sql`
+    UPDATE dispute_submissions AS ds
+    SET draft_id = NULL, submitted_by = NULL
+    FROM disputes AS d
+    WHERE ds.dispute_id = d.id AND d.merchant_id = ${merchantId}
+  `);
 }
