@@ -4,7 +4,7 @@
 
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/). Project plan: [PLAN.md](PLAN.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Deploy (Render + Neon, no card): [docs/deploy-render.md](docs/deploy-render.md).
 
-> Status: in progress (day 12). Store, checkout, policy engine, the resolution agent, the buyer help chat (with photo upload + vision assessment), unrecognized-charge matching, the merchant console (cases, timeline, approvals, policies), the dispute watcher and the dispute agent (draft → evidence PDF → submit to PayPal) work; impact dashboard, demo reset and polish are next.
+> Status: in progress (day 13). Store, checkout, policy engine, the resolution agent, the buyer help chat (photo upload + vision, unrecognized-charge match), the merchant console (cases, timeline, approvals, policies, **impact**), the dispute watcher + dispute agent, and the **demo panel** (scenarios + one-click reset) work; scenario eval and submission polish are next.
 
 ## Run it locally
 
@@ -38,6 +38,9 @@ Check everything is wired up: <http://localhost:3000/api/health>
 - **Disputes** — every PayPal dispute on the store, matched to its order and FirstReply case by capture ID: stage, status, the response deadline, what PayPal lets you do now, and whether the buyer talked to the agent first. Checked every minute (`DISPUTE_POLL_SECONDS`), on PayPal webhooks (`/api/webhooks/paypal`, signature-checked when `PAYPAL_WEBHOOK_ID` is set), or on demand with "Check PayPal now" / "Add by ID".
 - **Dispute page** — "Draft a response with the agent": it reads the case record (tracking, chat, offers, policy decisions) and recommends fight / offer / accept with its reasoning, the text for PayPal and the evidence it relies on. Code checks the draft (allowed actions only, no claimed delivery without tracking, offers capped at what's refundable). You edit, preview the case-record PDF, and send — PayPal's allowed actions are re-checked right before sending.
 - **Case page** — the conversation next to a plain-language timeline from the append-only audit log: each check, policy decision (with reasons), and PayPal call (with refund IDs). The raw call is one click away.
+- **Impact** — disputes prevented, money saved (order value × 5.13), average time to resolve, and breakdowns by route (auto / approved / escalated), door, issue type and trust tier.
+- **Demo panel** — `/demo`: set sandbox tracker status, add a local stuck-parcel or delivered scenario order (no checkout), one-click reset (`npm run db:reset` or the Reset button). Local / `DEMO_CONSOLE_OPEN` also unlock `/api/demo/enter-console` for a one-click console sign-in.
+
 
 ## Useful scripts
 

@@ -2,9 +2,11 @@ import { desc, eq, inArray, ne, and } from "drizzle-orm";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { DemoActions, DemoQuickLinks } from "@/components/demo/demo-actions";
+import { ShipmentControls } from "@/components/demo/shipment-controls";
 import { db } from "@/db";
 import { buyers, orders, shipments } from "@/db/schema";
-import { ShipmentControls } from "@/components/demo/shipment-controls";
+import { demoResetAllowed } from "@/lib/demo/seed-store";
 import { formatCents } from "@/lib/money";
 import { getDemoMerchant } from "@/lib/store";
 
@@ -43,7 +45,7 @@ async function OrdersTable() {
               <tr key={order.id}>
                 <td className="px-4 py-3 font-medium whitespace-nowrap">
                   {order.orderNumber}
-                  {!isSandbox && <span className="ml-2 text-xs font-normal text-zinc-400">seeded</span>}
+                  {!isSandbox && <span className="ml-2 text-xs font-normal text-zinc-400">local</span>}
                   <Link href={`/demo/email/${order.orderNumber}`} className="block text-xs font-normal text-emerald-700 hover:underline dark:text-emerald-400">
                     Order email →
                   </Link>
@@ -62,6 +64,8 @@ async function OrdersTable() {
                 <td className="px-4 py-3">
                   {isSandbox ? (
                     <ShipmentControls orderId={order.id} shipment={shipment && { id: shipment.id, status: shipment.status }} />
+                  ) : shipment ? (
+                    <p className="text-right text-xs text-zinc-500">{shipment.status.replaceAll("_", " ")}</p>
                   ) : (
                     <p className="text-right text-xs text-zinc-400">history only</p>
                   )}
@@ -76,16 +80,21 @@ async function OrdersTable() {
 }
 
 export default function DemoPanel() {
+  const resetAllowed = demoResetAllowed();
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
-      <header className="flex flex-col gap-2">
+      <header className="flex flex-col gap-3">
         <p className="text-sm font-medium tracking-wide text-amber-700 uppercase dark:text-amber-400">Demo control panel</p>
         <h1 className="text-3xl font-semibold tracking-tight">Play the carrier</h1>
         <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
-          PayPal sandbox parcels never move, so set each order&apos;s tracking status here. Changes update the order&apos;s
-          tracker in PayPal, which is what the agent reads.
+          PayPal sandbox parcels never move, so set each sandbox order&apos;s tracking status here. Add a local scenario
+          order when you want to skip checkout, or reset the store to seed data in one click.
         </p>
+        <DemoQuickLinks />
       </header>
+
+      <DemoActions resetAllowed={resetAllowed} />
+
       <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" />}>
         <OrdersTable />
       </Suspense>
