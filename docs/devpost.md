@@ -26,7 +26,7 @@ Merchants lose about **$5.13 for every $1** of fraud once fees, goods and labor 
 - **Unrecognized charges:** soft-descriptor statement matching so "I don't recognize this PayPal charge" often ends in recognition, not a dispute.
 - **Photos:** optional damage vision assessment (multimodal) before proposing a partial refund.
 - **Disputes:** watcher (poll + webhooks) matches PayPal disputes to orders/cases; Dispute Agent drafts fight / offer / accept + evidence PDF; **merchant clicks Submit**.
-- **Console:** cases (AG Grid), timeline from the append-only audit log, approvals, policies, **impact** (disputes prevented, $ saved × 5.13).
+- **Console:** cases (AG Grid), timeline from the append-only audit log, approvals, policies, **impact** (disputes prevented, estimated dispute cost avoided at 5.13× order value).
 - **Demo panel:** play the carrier, add scenario orders, one-click reset.
 
 ## How we built it
@@ -55,9 +55,14 @@ Next.js, TypeScript, React, Tailwind, PostgreSQL, Drizzle, Vercel AI SDK, PayPal
 
 ## Try it
 
-1. Follow [docs/setup.md](./setup.md) (Node 24, Docker, sandbox app, LLM key).
-2. `npm run db:up && npm run db:migrate && npm run db:seed && npm run dev`
-3. Open `/demo` → Add stuck parcel → `/s/trailhead` as Maya → then `/console` (password in `.env.local`).
+**Live demo:** https://firstreply-0jro.onrender.com (PayPal sandbox — no real money; the free instance may take ~50 s to wake up).
+
+1. Open `/demo` → **Add stuck parcel**. It creates an order for Maya (a Trusted buyer) with a *simulated* payment, so no checkout is needed.
+2. Open the help page (`/s/trailhead`) with that order number and `maya.chen@example.com`, say the parcel never came, and ask for a refund. The agent checks tracking (stuck on hold), offers a fix, and — because $129 is over Maya's automatic limit — sends it to the store for approval.
+3. **Merchant console** → *Open the demo store's console* → **Approvals** → Approve. The buyer's chat updates; the case timeline shows every check and policy decision. (Refunds on scenario orders are recorded as `SIMULATED-…`; buy something in the store with a PayPal sandbox buyer to see a real sandbox refund.)
+4. **Disputes** → open a dispute → *Draft a response with the agent* → preview the evidence PDF.
+
+Run it yourself: follow [docs/setup.md](./setup.md) (Node 24, Docker, sandbox app, LLM key), then `npm run db:up && npm run db:migrate && npm run db:seed && npm run dev`.
 
 ## Architecture
 

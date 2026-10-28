@@ -2,6 +2,7 @@
  * Turns audit-log rows (`actions`) into plain-language timeline entries for the merchant console.
  * Pure, so it's unit-tested; the raw arguments and result stay one click away in the UI.
  */
+import { isSimulatedRefundId } from "@/lib/demo/simulated";
 import { disputeStageLabel } from "@/lib/disputes/map";
 import { formatCents } from "@/lib/money";
 
@@ -74,6 +75,9 @@ export function describeAction(row: ActionRow): TimelineEntry {
     case "issue_refund": {
       const paypal = obj(result.paypal);
       const amount = typeof args.amount_cents === "number" ? formatCents(args.amount_cents) : "";
+      if (isSimulatedRefundId(paypal.id)) {
+        return { title: `Simulated refund of ${amount}`, detail: "Demo scenario order — no real PayPal payment, so no money moved", tone: "money", reasons, paypalRef: `refund ${String(paypal.id)} (simulated)` };
+      }
       return { title: `Refunded ${amount} through PayPal`.replace("  ", " "), detail: paypal.status ? `PayPal status ${String(paypal.status).toLowerCase()}` : undefined, tone: "money", reasons, paypalRef: paypal.id ? `refund ${paypal.id}` : undefined };
     }
     case "create_reship":

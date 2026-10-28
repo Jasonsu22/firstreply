@@ -106,16 +106,9 @@ async function prepareTurn(orderId: string, buyerMessage: string, image?: BuyerI
     checkedNow = `Checked just now by the system (get_order and get_shipment_status already ran for this message — use these facts and don't call them again unless the buyer says something changed):\nOrder: ${JSON.stringify(orderFacts)}\nShipping: ${JSON.stringify(shippingFacts)}`;
   }
 
-  // Multimodal when the buyer attached a photo (Flow C); otherwise plain text.
-  const userMessage: ModelMessage = image
-    ? {
-        role: "user",
-        content: [
-          { type: "text", text: buyerMessage || "(Buyer sent a photo of the item.)" },
-          { type: "image", image: `data:${image.mediaType};base64,${image.base64}` },
-        ],
-      }
-    : { role: "user", content: buyerMessage };
+  // A photo goes to the vision assessment below, not into the conversation: the agent gets the assessment as a
+  // trusted fact, and the image isn't stored in the chat history or re-sent to the model on every later turn.
+  const userMessage: ModelMessage = { role: "user", content: image ? `${buyerMessage}\n(Photo attached — see the photo assessment.)` : buyerMessage };
 
   let photoNote = "";
   if (image) {

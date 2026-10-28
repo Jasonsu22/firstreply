@@ -16,6 +16,7 @@ import { formatCents } from "@/lib/money";
 import { runToolkitTool } from "@/lib/paypal/toolkit";
 import { loadPolicyContext } from "@/lib/policy/context";
 import { evaluateProposal, type IssueType, type ProposalType } from "@/lib/policy/engine";
+import { isSimulatedPayment } from "@/lib/demo/simulated";
 import { addFact, audited, logAction } from "./audit";
 import { executeOffer } from "./execute";
 import { matchStatementSnippet } from "./statement";
@@ -61,7 +62,10 @@ export function createResolutionTools(session: AgentSession) {
         const { result, actionId } = await audited(meta("get_order", {}), async () => {
           const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
           const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-          const paypal = order.paypalOrderId
+          // Demo scenario orders have a simulated payment: nothing to look up in PayPal.
+          const paypal = isSimulatedPayment(order)
+            ? { status: "COMPLETED", purchase_units: [{ payments: { captures: [{ status: "COMPLETED" }] } }] }
+            : order.paypalOrderId
             ? ((await runToolkitTool("get_order", { id: order.paypalOrderId })) as {
                 status?: string;
                 purchase_units?: { payments?: { captures?: { status?: string }[] } }[];
@@ -96,10 +100,13 @@ export function createResolutionTools(session: AgentSession) {
           const [shipment] = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).orderBy(desc(shipments.shippedAt));
           if (!shipment) return { shipped: false as const, note: "The order hasn't shipped yet; it ships within 1 business day." };
 
-          const tracking = (await runToolkitTool("get_shipment_tracking", {
-            order_id: order.paypalOrderId,
-            transaction_id: order.paypalCaptureId,
-          })) as { trackers?: Tracker[] };
+          // Demo scenario orders have no PayPal tracker: the store's own shipment record is the source.
+          const tracking = isSimulatedPayment(order)
+            ? { trackers: [] as Tracker[] }
+            : ((await runToolkitTool("get_shipment_tracking", {
+                order_id: order.paypalOrderId,
+                transaction_id: order.paypalCaptureId,
+              })) as { trackers?: Tracker[] });
           // PayPal keeps one record per update of the same tracking number: use the newest.
           const latest = (tracking.trackers ?? [])
             .filter((t) => t.tracking_number === shipment.trackingNumber)

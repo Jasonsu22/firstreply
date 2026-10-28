@@ -40,6 +40,11 @@ describe("describeAction", () => {
     expect(e).toMatchObject({ title: "Refunded $45.00 through PayPal", tone: "money", paypalRef: "refund 1Y68" });
   });
 
+  it("labels simulated refunds on demo scenario orders", () => {
+    const e = describeAction(row({ tool: "issue_refund", arguments: { amount_cents: 12900 }, result: { paypal: { id: "SIMULATED-AB12CD34", status: "COMPLETED" } } }));
+    expect(e).toMatchObject({ title: "Simulated refund of $129.00", tone: "money", paypalRef: "refund SIMULATED-AB12CD34 (simulated)" });
+  });
+
   it("marks failures and keeps the PayPal debug id", () => {
     const e = describeAction(row({ tool: "issue_refund", status: "error", result: { error: "INSUFFICIENT_FUNDS" }, paypalDebugId: "abc123" }));
     expect(e).toMatchObject({ title: "issue refund failed", detail: "INSUFFICIENT_FUNDS", tone: "error", paypalRef: "debug id abc123" });

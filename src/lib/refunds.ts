@@ -10,6 +10,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, refunds } from "@/db/schema";
+import { isSimulatedPayment, SIMULATED_REFUND_PREFIX } from "@/lib/demo/simulated";
 import { centsToPayPal } from "@/lib/money";
 import { paypalRequest } from "@/lib/paypal/client";
 
@@ -38,14 +39,17 @@ export async function issueRefund(args: { orderId: string; offerId: string | nul
           .values({ orderId: order.id, offerId: args.offerId, idempotencyKey: args.idempotencyKey, amountCents: args.amountCents })
           .returning();
 
-    const paypal = await paypalRequest<PayPalRefund>(`/v2/payments/captures/${order.paypalCaptureId}/refund`, {
-      method: "POST",
-      requestId: args.idempotencyKey,
-      body: {
-        amount: { currency_code: order.currency, value: centsToPayPal(args.amountCents) },
-        ...(args.noteToPayer && { note_to_payer: args.noteToPayer.slice(0, 255) }),
-      },
-    });
+    // Demo scenario orders have no real payment: record a clearly labelled simulated refund instead.
+    const paypal: PayPalRefund = isSimulatedPayment(order)
+      ? { id: `${SIMULATED_REFUND_PREFIX}${pending.id.slice(0, 8).toUpperCase()}`, status: "COMPLETED" }
+      : await paypalRequest<PayPalRefund>(`/v2/payments/captures/${order.paypalCaptureId}/refund`, {
+          method: "POST",
+          requestId: args.idempotencyKey,
+          body: {
+            amount: { currency_code: order.currency, value: centsToPayPal(args.amountCents) },
+            ...(args.noteToPayer && { note_to_payer: args.noteToPayer.slice(0, 255) }),
+          },
+        });
     if (paypal.status === "FAILED" || paypal.status === "CANCELLED") throw new RefundError(`PayPal refund ${paypal.status.toLowerCase()}.`);
 
     const [refund] = await tx

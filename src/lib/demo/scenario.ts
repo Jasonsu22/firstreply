@@ -1,11 +1,13 @@
 /**
- * Demo panel: create a local scenario order (no PayPal capture) so judges can
- * open help chat without running a sandbox checkout first.
+ * Demo panel: create a scenario order with a simulated payment (DEMO- IDs, see simulated.ts) so judges can
+ * open help chat and see a refund without running a sandbox checkout first.
  */
+import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { buyers, orderItems, orders, products, shipments } from "@/db/schema";
 import { DEMO_SLUG } from "@/lib/demo/seed-store";
+import { SIMULATED_PREFIX } from "@/lib/demo/simulated";
 import { getDemoMerchant } from "@/lib/store";
 
 export type ScenarioKind = "stuck_parcel" | "delivered_ok";
@@ -56,6 +58,9 @@ export async function createScenarioOrder(kind: ScenarioKind): Promise<ScenarioR
         orderNumber,
         source: "demo_store",
         status: "captured",
+        // Simulated payment: lets the agent check tracking and refund without a sandbox checkout (see simulated.ts).
+        paypalOrderId: `${SIMULATED_PREFIX}ORDER-${randomUUID()}`,
+        paypalCaptureId: `${SIMULATED_PREFIX}CAPTURE-${randomUUID()}`,
         amountCents: product.priceCents,
         softDescriptor: merchant.softDescriptor ?? "TRAILHEAD FRPLY.CO/HLP",
         createdAt: placedAt,

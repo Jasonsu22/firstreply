@@ -8,6 +8,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, shipments } from "@/db/schema";
+import { isSimulatedPayment } from "@/lib/demo/simulated";
 import { runToolkitTool } from "@/lib/paypal/toolkit";
 
 export type ShipmentStatus = (typeof shipments.$inferSelect)["status"];
@@ -33,7 +34,7 @@ export async function shipOrder(orderId: string, carrier = "UPS") {
   if (existing) throw new ShippingError(`Already shipped (${existing.carrier} ${existing.trackingNumber}).`);
 
   const trackingNumber = `1Z${Date.now().toString().slice(-12)}`;
-  await runToolkitTool("create_shipment_tracking", {
+  if (!isSimulatedPayment(order)) await runToolkitTool("create_shipment_tracking", {
     order_id: order.paypalOrderId,
     transaction_id: order.paypalCaptureId,
     tracking_number: trackingNumber,
@@ -61,7 +62,7 @@ export async function createReship(orderId: string, carrier = "UPS") {
   const [original] = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).orderBy(desc(shipments.shippedAt));
 
   const trackingNumber = `1Z${Date.now().toString().slice(-12)}`;
-  await runToolkitTool("create_shipment_tracking", {
+  if (!isSimulatedPayment(order)) await runToolkitTool("create_shipment_tracking", {
     order_id: order.paypalOrderId,
     transaction_id: order.paypalCaptureId,
     tracking_number: trackingNumber,
@@ -89,7 +90,7 @@ export async function setShipmentStatus(shipmentId: string, status: ShipmentStat
   const [order] = await db.select().from(orders).where(eq(orders.id, shipment.orderId));
   if (!order?.paypalCaptureId) throw new ShippingError("Order has no PayPal capture.");
 
-  if (PAYPAL_STATUS[status] !== PAYPAL_STATUS[shipment.status]) {
+  if (PAYPAL_STATUS[status] !== PAYPAL_STATUS[shipment.status] && !isSimulatedPayment(order)) {
     await runToolkitTool("update_shipment_tracking", {
       transaction_id: order.paypalCaptureId,
       tracking_number: shipment.trackingNumber,

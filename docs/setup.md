@@ -63,7 +63,7 @@ Smoke checks:
 
 ## 5. A five-minute walkthrough
 
-1. **Demo panel** → *Add stuck parcel* (creates a local order for Maya, tracker `on_hold`).
+1. **Demo panel** → *Add stuck parcel* (creates an order for Maya with a simulated `DEMO-` payment and a tracker `on_hold`; refunds on it are recorded as `SIMULATED-…`, never sent to PayPal).
 2. **Help page** `/s/trailhead` → order number + `maya.chen@example.com` → chat.
 3. Say the parcel never arrived. The agent checks tracking and offers a refund or reship within policy.
 4. **Console → Cases** → open the case → timeline shows every tool call and policy decision.

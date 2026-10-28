@@ -50,7 +50,7 @@ function Dashboard({ stats }: { stats: ImpactStats }) {
           hint={`${stats.resolvedCount} resolved · ${stats.disputedCount} still disputed · ${stats.casesTotal} total cases`}
         />
         <StatCard
-          label="Money saved"
+          label="Est. dispute cost avoided"
           value={formatCents(stats.moneySavedCents)}
           hint={`Order value ${formatCents(stats.preventedOrderCents)} × ${DISPUTE_COST_MULTIPLIER} dispute-cost factor`}
         />
